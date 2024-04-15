@@ -4,7 +4,7 @@ services:
   tenant-onboarding:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
     container_name: tenant-onboarding
     restart: unless-stopped
     ports:

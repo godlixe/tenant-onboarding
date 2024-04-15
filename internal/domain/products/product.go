@@ -10,6 +10,6 @@ type Product struct {
 	ID     uuid.UUID `json:"id"`
 	AppID  int       `json:"app_id"`
 	TierID int       `json:"tier_id"`
-	DeploymentSchema
+	// DeploymentSchema DeploymentSchema `json:"deployment_schema"`
 	database.Timestamp
 }

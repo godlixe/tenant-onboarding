@@ -1,4 +1,4 @@
-FROM golang:1.21.1-alpine
+FROM golang:1.22.1-alpine
 
 WORKDIR /usr/src/app
 
@@ -8,12 +8,11 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go get github.com/githubnemo/CompileDaemon
-RUN go install github.com/githubnemo/CompileDaemon
+RUN go install github.com/cosmtrek/air@latest
 
-WORKDIR /usr/src/app/cmd/server
+# WORKDIR /usr/src/app/cmd/server
 
-ENTRYPOINT CompileDaemon -directory="./cmd/server" -build="go build ./cmd/server -o /build/app" -command="/build/app"
+ENTRYPOINT ["air", "-c", ".air.toml"]
 
 # RUN go mod download
 
