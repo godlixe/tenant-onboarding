@@ -23,11 +23,11 @@ func main() {
 
 	tenantQueue.Init(messages)
 
-	ctx, _ := context.WithTimeout(context.Background(), 10)
+	ctx, cancel := context.WithTimeout(context.Background(), 10)
 	for i := 0; i < 1; i++ {
 		tenantQueue.Push(ctx)
 	}
 	worker.Init(messages)
-
+	cancel()
 	tenantQueue.Pull(ctx)
 }

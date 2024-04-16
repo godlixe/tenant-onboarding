@@ -1,9 +1,12 @@
 package worker
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"tenant-onboarding/internal/domain/users/entity"
 )
 
 type Worker struct {
@@ -31,5 +34,15 @@ func (w *Worker) work() {
 		if _, err := f.WriteString(string(msg)); err != nil {
 			fmt.Println(err)
 		}
+
+		var tenantData entity.Tenant
+
+		err = json.Unmarshal(msg, &tenantData)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		Deploy(context.Background(), &tenantData)
 	}
 }

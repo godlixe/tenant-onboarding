@@ -1,5 +1,5 @@
 provider "google" {
-  credentials = file("../../static-booster-418207-f03f2fb4355d.json")
+  credentials = file("/home/alex/project/golang/tenant-onboarding/creds/static-booster-418207-f03f2fb4355d.json")
   project     = "static-booster-418207"
   region      = "asia-southeast2"
 }

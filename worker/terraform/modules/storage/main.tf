@@ -12,7 +12,7 @@ resource "google_sql_database_instance" "storage" {
         retained_backups = 7
         retention_unit   = "COUNT"
       }
-      enabled                        = true
+      enabled                        = false
       location                       = "asia"
       start_time                     = "01:00"
       transaction_log_retention_days = 7
@@ -35,11 +35,13 @@ resource "google_sql_database_instance" "storage" {
     pricing_plan = "PER_USE"
     tier         = "db-custom-1-3840"
   }
+
+  deletion_protection = false
 }
 
 resource "google_sql_database" "storage" {
-    name = "cloud-sql-${var.storage_instance_name}"
-    instance = google_sql_database_instance.storage.name
+  name     = "cloud-sql-${var.storage_instance_name}"
+  instance = google_sql_database_instance.storage.name
 }
 
 resource "google_sql_user" "new-user" {
