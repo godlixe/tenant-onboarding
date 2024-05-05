@@ -15,7 +15,7 @@ type Queue struct {
 	messages chan<- []byte
 }
 
-func (q *Queue) Init(messages chan<- []byte) {
+func Init(messages chan<- []byte) *Queue {
 	creds, err := google.FindDefaultCredentials(context.Background())
 	if err != nil {
 		fmt.Println(err)
@@ -28,39 +28,36 @@ func (q *Queue) Init(messages chan<- []byte) {
 		option.WithCredentialsJSON(creds.JSON),
 	)
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	q := &Queue{}
+
 	q.client = pubsubClient
 	q.messages = messages
+
+	return q
 }
 
-func (q *Queue) Pull(ctx context.Context) {
-	// topic := q.client.Topic("test-topic")
-
+func (q *Queue) Pull(ctx context.Context) error {
 	sub := q.client.Subscription("test-topic")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
-	fmt.Println("fetching data")
-	err := sub.Receive(context.Background(), func(ctx context.Context, m *pubsub.Message) {
+	err := sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {
 		fmt.Println("got data, ", string(m.Data))
 		q.messages <- m.Data
 		m.Ack()
 	})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }
 
-func (q *Queue) Push(ctx context.Context) error {
+func (q *Queue) Push(ctx context.Context, msg []byte) error {
 	topic := q.client.Topic("test-topic")
 
 	res := topic.Publish(ctx, &pubsub.Message{
-		Data: []byte("test string"),
+		Data: msg,
 	})
 
 	_, err := res.Get(ctx)

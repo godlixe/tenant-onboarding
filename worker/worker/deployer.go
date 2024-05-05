@@ -22,6 +22,7 @@ module "main" {
   
   terraform {
 	backend "gcs"{
+	  credentials = "/home/alex/project/golang/tenant-onboarding/creds/static-booster-418207-f03f2fb4355d.json"
 	  bucket = "terraform-dep"
 	  prefix = "%v"
 	}
@@ -67,13 +68,14 @@ func Deploy(ctx context.Context, tenantData *entity.Tenant) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
+	fmt.Printf(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 	err = tf.Init(ctx)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	fmt.Println("tf-apply")
 	err = tf.Apply(ctx)
 	if err != nil {
 		fmt.Println(err)
