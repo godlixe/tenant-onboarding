@@ -1,7 +1,7 @@
 root = "."
 
 [build]
-    cmd = "go build -o /build/app ./cmd/server "
+    cmd = "go build -buildvcs=false -o /build/app ./cmd/server "
     bin = "/build/app"
     include_ext = ["go", "tpl", "tmpl", "html"]
     exclude_unchanged = false
