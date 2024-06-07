@@ -2,6 +2,7 @@ package valueobjects
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"tenant-onboarding/modules/onboarding/internal/errors"
 )
 
@@ -56,4 +57,24 @@ func (d *DeploymentModel) Value() (driver.Value, error) {
 	}
 
 	return d.Model, nil
+}
+
+func (d *DeploymentModel) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	var deploymentModelValue string
+	err := json.Unmarshal(data, &deploymentModelValue)
+	if err != nil {
+		return err
+	}
+
+	deploymentModel, err := NewDeploymentModel(deploymentModelValue)
+	if err != nil {
+		return err
+	}
+
+	d.Model = deploymentModel.Model
+	return nil
 }

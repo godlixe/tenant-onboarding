@@ -19,6 +19,7 @@ func RegisterDependencies(app *providers.App) {
 	appQuery := postgresql.NewAppQuery(app.DB)
 
 	infrastructureRepository := postgresql.NewInfrastructureRepository(app.DB)
+	tenantInfrastructureRepository := postgresql.NewTenantsInfrastructuresRepository(app.DB)
 	tenantRepository := postgresql.NewTenantRepository(app.DB)
 	productRepository := postgresql.NewProductRepository(app.DB)
 	tenantDeploymentRepository := pubsub.NewTenantDeploymentRepository(app.Queue)
@@ -40,6 +41,10 @@ func RegisterDependencies(app *providers.App) {
 
 	do.Provide(app.Injector, func(injector *do.Injector) (repositories.InfrastructureRepository, error) {
 		return infrastructureRepository, nil
+	})
+
+	do.Provide(app.Injector, func(injector *do.Injector) (repositories.TenantsInfrastructuresRepository, error) {
+		return tenantInfrastructureRepository, nil
 	})
 
 	processor.Run(context.TODO(), app)

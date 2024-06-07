@@ -68,6 +68,12 @@ CREATE TABLE IF NOT EXISTS infrastructures (
     created_at timestamp NOT NULL,
     updated_at timestamp NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tenants_infrastructures (
+    tenant_id VARCHAR(36) NOT NULL,
+    infrastructure_id VARCHAR(36) NOT NULL,
+    created_at timestamp NOT NULL,
+    updated_at timestamp NOT NULL
+);
 -- users_tenants table
 ALTER TABLE users_tenants
 ADD CONSTRAINT fk_users_tenants_user_id FOREIGN KEY (user_id) REFERENCES users (id);
@@ -86,3 +92,8 @@ ADD CONSTRAINT fk_products_tier_id FOREIGN KEY (tier_id) REFERENCES tiers (id);
 -- infrastructures table
 ALTER TABLE infrastructures
 ADD CONSTRAINT fk_infrastructures_product_id FOREIGN KEY (product_id) REFERENCES products (id);
+-- tenants_infrastructures table
+ALTER TABLE tenants_infrastructures
+ADD CONSTRAINT fk_tenants_infrastructures_tenant_id FOREIGN KEY (tenant_id) REFERENCES tenants (id);
+ALTER TABLE tenants_infrastructures
+ADD CONSTRAINT fk_tenants_infrastructures_infrastructure_id FOREIGN KEY (infrastructure_id) REFERENCES infrastructures (id);

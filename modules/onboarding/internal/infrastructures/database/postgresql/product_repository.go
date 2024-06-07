@@ -26,7 +26,10 @@ func (q *ProductRepository) GetByID(
 ) (*entities.Product, error) {
 	var product entities.Product
 
-	tx := q.db.Model(&entities.Product{}).Limit(1).Find(&product)
+	tx := q.db.Model(&entities.Product{}).
+		Where("id = ?", productID).
+		Limit(1).
+		Find(&product)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}

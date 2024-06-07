@@ -1,6 +1,8 @@
 package entities
 
-import "tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
+import (
+	"tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
+)
 
 type TenantData struct {
 	ID             string `json:"id"`

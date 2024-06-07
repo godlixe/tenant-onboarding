@@ -69,6 +69,7 @@ func (c *UserCreateTenantCommand) Execute(ctx context.Context, r UserCreateTenan
 	if err != nil {
 		return err
 	}
+
 	product, err := c.productRepository.GetByID(ctx, productID)
 	if err != nil {
 		return err

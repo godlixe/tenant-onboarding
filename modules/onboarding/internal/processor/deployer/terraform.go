@@ -3,7 +3,6 @@ package deployer
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -14,117 +13,106 @@ import (
 	"tenant-onboarding/modules/onboarding/internal/domain/entities"
 	"tenant-onboarding/modules/onboarding/internal/domain/repositories"
 	"tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
+	"time"
 
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func Deploy(
-	ctx context.Context,
-	cfg Config,
-	tenantJob *entities.TenantDeploymentJob,
-	infrastructureRepository repositories.InfrastructureRepository,
-) error {
-	var err error
+type infraMetadata struct {
+	Variables []map[string]string `json:"variables"`
+}
 
-	// executionPath is the path used by the pipeline to deploy
-	var executionPath string = "/tmp"
+func parseInfrastructures(
+	infrastructureDefinition []InfrastructureDefinition,
+	availableInfrastructures []entities.Infrastructure,
+) (map[string]InfrastructureBlueprint, error) {
+	infrastructureBlueprintMap := make(map[string]InfrastructureBlueprint)
+	for _, data := range infrastructureDefinition {
+		for key, val := range data {
 
-	tenantId := tenantJob.TenantData.ID
-	tenantDirPath := filepath.Join(
-		executionPath,
-		tenantId,
-	)
-
-	// create dir for new tenant
-	if _, err := os.Stat(tenantId); os.IsNotExist(err) {
-		err := os.Mkdir(tenantDirPath, fs.ModePerm)
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-	}
-
-	// Get deployment schema for product.
-	var deploymentSchema map[string]interface{}
-	err = json.Unmarshal([]byte(tenantJob.ProductData.DeploymentSchema), &deploymentSchema)
-	if err != nil {
-		return err
-	}
-
-	// infrastructureMetadata stores infrastructure related metadata according to
-	// types defined in `infraStructureBlueprintJson`.
-	var infrastructureBlueprintMap map[string]InfrastructureBluePrint = make(map[string]InfrastructureBluePrint)
-	var infraStructureBlueprintJson []any = deploymentSchema["infrastructure_blueprint"].([]any)
-	for _, data := range infraStructureBlueprintJson {
-		infraData := data.(map[string]any)
-		for key, val := range infraData {
-			deploymentModelString := val.(string)
-			deploymentModel, err := valueobjects.NewDeploymentModel(deploymentModelString)
-			if err != nil {
-				return err
-			}
-
-			infrastructureBlueprintMap[key] = InfrastructureBluePrint{
+			infrastructureBlueprintMap[key] = InfrastructureBlueprint{
 				InfraStructureType: key,
 
 				// defaults to create new, will be set
 				// accordingly below.
 				IsCreateNew:     true,
-				DeploymentModel: deploymentModel,
+				DeploymentModel: val,
 			}
 		}
 	}
-	productIDValueObj, err := valueobjects.NewProductID(tenantJob.ProductData.ID)
-	if err != nil {
-		return err
-	}
-	availableInfrastructures, err := infrastructureRepository.GetByProductIDInfraTypeOrdered(context.TODO(), productIDValueObj)
-	if err != nil {
-		return err
-	}
 
-	for _, data := range availableInfrastructures {
-		val, ok := infrastructureBlueprintMap[data.Name]
+	for availInfraKey, availInfra := range availableInfrastructures {
+		val, ok := infrastructureBlueprintMap[availInfra.Name]
 		if ok {
-			var inframetadataJSON map[string]any
-
-			err = json.Unmarshal([]byte(data.Metadata), &inframetadataJSON)
+			var inframetadataJSON infraMetadata
+			err := json.Unmarshal([]byte(availInfra.Metadata), &inframetadataJSON)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
-			var infraVariables map[string]string = make(map[string]string)
-			infraMetadataVariables := inframetadataJSON["variables"].([]any)
-			for _, data := range infraMetadataVariables {
-				mp := data.(map[string]any)
-				for mpKey, mpData := range mp {
-					if _, ok := mpData.(string); !ok {
-						return errors.New("invalid string")
-					}
-					infraVariables[mpKey] = mpData.(string)
+			infraVariables := make(map[string]string)
+			for _, infraVarsIter := range inframetadataJSON.Variables {
+				for infraVarkey, infraVarData := range infraVarsIter {
+					infraVariables[infraVarkey] = infraVarData
 				}
 			}
+
 			val.SetIsCreateNew(false)
 			val.Variables = infraVariables
-			infrastructureBlueprintMap[data.Name] = val
+			val.InfrastructureEntity = &availableInfrastructures[availInfraKey]
+			infrastructureBlueprintMap[availInfra.Name] = val
 		}
 	}
 
-	// Clone repository to execution path.
-	terraformRepoURL := string(deploymentSchema["terraform_repository_url"].(string))
-	gitCmd := exec.Command("/usr/bin/git", "clone", terraformRepoURL)
+	return infrastructureBlueprintMap, nil
+}
+
+func createTenantExecutionDir(tenantID string) (string, error) {
+	// executionPath is the path used by the pipeline to deploy
+	var executionPath string = "/tmp"
+
+	tenantDirPath := filepath.Join(
+		executionPath,
+		tenantID,
+	)
+
+	// create dir for new tenant
+	if _, err := os.Stat(tenantID); os.IsNotExist(err) {
+		err := os.Mkdir(tenantDirPath, fs.ModePerm)
+		if err != nil {
+			fmt.Println(err)
+			return "", err
+		}
+	}
+
+	return tenantDirPath, nil
+}
+
+func copyDeploymentRepository(schema DeploymentSchema, tenantDirPath string) error {
+	gitCmd := exec.Command("/usr/bin/git", "clone", schema.DeploymentRepositoryURL)
 	gitCmd.Dir = tenantDirPath
 	gitCmd.Stderr = os.Stdout
 	gitCmd.Stdout = os.Stdout
 
-	err = gitCmd.Run()
+	err := gitCmd.Run()
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
-	tfEntryPoint := path.Join(tenantDirPath, string(
-		deploymentSchema["terraform_entrypoint_dir"].(string)),
+	return nil
+}
+
+func runTerraform(
+	ctx context.Context,
+	cfg Config,
+	tenantDirPath string,
+	tenantID string,
+	deploymentSchema DeploymentSchema,
+	infrastructureBlueprintMap map[string]InfrastructureBlueprint,
+) error {
+	tfEntryPoint := path.Join(
+		tenantDirPath,
+		deploymentSchema.TerraformExecutionPath,
 	)
 
 	tf, err := tfexec.NewTerraform(tfEntryPoint, cfg.TerraformExecPath)
@@ -134,8 +122,8 @@ func Deploy(
 	}
 
 	err = tf.Init(ctx,
-		tfexec.BackendConfig(fmt.Sprintf("prefix=%s", tenantJob.TenantData.ID)),
-		tfexec.BackendConfig("bucket=terraform-dep"),
+		tfexec.BackendConfig(fmt.Sprintf("prefix=%v", tenantID)),
+		tfexec.BackendConfig(fmt.Sprintf("bucket=%v", cfg.TerraformBackendBucket)),
 	)
 	if err != nil {
 		fmt.Println(err)
@@ -144,15 +132,17 @@ func Deploy(
 
 	tf.SetStdout(os.Stdout)
 	tfVariables := []tfexec.ApplyOption{
-		tfexec.Var("project_id=static-booster-418207"),
-		tfexec.Var("region=asia-southeast2"),
-		tfexec.Var(fmt.Sprintf("tenant_name=%v", tenantJob.TenantData.ID)),
-		tfexec.Var(fmt.Sprintf("tenant_subdomain=%v", tenantJob.TenantData.ID)),
-		tfexec.Var(fmt.Sprintf("tenant_password=%v", tenantJob.TenantData.ID)),
+		tfexec.Var(fmt.Sprintf("project_id=%v", cfg.GoogleProjectID)),
+		tfexec.Var(fmt.Sprintf("region=%v", cfg.GoogleDeploymentRegion)),
+		tfexec.Var(fmt.Sprintf("tenant_name=%v", tenantID)),
+		tfexec.Var(fmt.Sprintf("tenant_subdomain=%v", tenantID)),
+		tfexec.Var(fmt.Sprintf("tenant_password=%v", tenantID)),
 	}
+
 	for key, val := range infrastructureBlueprintMap {
 		// skip if not creating a new resource
-		if !val.IsCreateNew {
+		if val.IsCreateNew {
+			tfVariables = append(tfVariables, tfexec.Var(fmt.Sprintf("is_create_%v=true", key)))
 			continue
 		}
 
@@ -162,14 +152,15 @@ func Deploy(
 			tfVariables = append(tfVariables, tfexec.Var(fmt.Sprintf("%v=%v", infraBpKey, infraBpVal)))
 		}
 	}
-	// for _, data := range tfVariables {
-	// 	tmpData := data.(*tfexec.VarOption)
-	// 	fmt.Println(tmpData)
-	// }
 
 	err = tf.Apply(ctx, tfVariables...)
 	if err != nil {
 		fmt.Println(err)
+		return err
+	}
+
+	_, err = tf.StatePull(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -179,13 +170,9 @@ func Deploy(
 		return err
 	}
 
-	_, err = tf.StatePull(ctx)
-	if err != nil {
-		return err
-	}
-
-	// looping until output is available
+	// poll until output is available
 	for len(out) == 0 {
+		time.Sleep(1000)
 		out, err = tf.Output(ctx)
 		if err != nil {
 			return err
@@ -194,45 +181,129 @@ func Deploy(
 	}
 
 	for key, data := range out {
-		fmt.Println(key, string(data.Value))
 		keysSubstr := strings.Split(key, "_")
-		fmt.Println(keysSubstr)
 		val, ok := infrastructureBlueprintMap[keysSubstr[0]]
 		if ok {
 			var metadataMap map[string]string = make(map[string]string)
 			metadataMap[key] = strings.ReplaceAll(string(data.Value), "\"", "")
 			val.Metadata = append(val.Metadata, metadataMap)
-
 			infrastructureBlueprintMap[keysSubstr[0]] = val
 		}
 	}
 
+	return nil
+}
+
+func Deploy(
+	ctx context.Context,
+	cfg Config,
+	tenantJob *entities.TenantDeploymentJob,
+	infrastructureRepository repositories.InfrastructureRepository,
+	tenantsInfrastructureRepository repositories.TenantsInfrastructuresRepository,
+) error {
+	var err error
+
+	tenantDirPath, err := createTenantExecutionDir(tenantJob.TenantData.ID)
+	if err != nil {
+		return err
+	}
+
+	var deploymentSchema DeploymentSchema
+	err = json.Unmarshal([]byte(tenantJob.ProductData.DeploymentSchema), &deploymentSchema)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	err = copyDeploymentRepository(deploymentSchema, tenantDirPath)
+	if err != nil {
+		return err
+	}
+
+	productIDValueObj, err := valueobjects.NewProductID(tenantJob.ProductData.ID)
+	if err != nil {
+		return err
+	}
+	availableInfrastructures, err := infrastructureRepository.GetByProductIDInfraTypeOrdered(ctx, productIDValueObj)
+	if err != nil {
+		return err
+	}
+
+	infrastructureBlueprintMap, err := parseInfrastructures(
+		deploymentSchema.InfrastructureDefinition,
+		availableInfrastructures,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = runTerraform(
+		ctx,
+		cfg,
+		tenantDirPath,
+		tenantJob.TenantData.ID,
+		deploymentSchema,
+		infrastructureBlueprintMap,
+	)
+	if err != nil {
+		return err
+	}
+
 	insertInfrastructures(
+		ctx,
 		tenantJob.ProductData.ID,
+		tenantJob.TenantData.ID,
 		infrastructureBlueprintMap,
 		infrastructureRepository,
+		tenantsInfrastructureRepository,
 	)
 
 	return nil
 }
 
 func insertInfrastructures(
+	ctx context.Context,
 	productID string,
-	infrastructureBlueprintMap map[string]InfrastructureBluePrint,
+	tenantID string,
+	infrastructureBlueprintMap map[string]InfrastructureBlueprint,
 	infrastructureRepository repositories.InfrastructureRepository,
+	tenantsInfrastructureRepository repositories.TenantsInfrastructuresRepository,
 ) error {
 	productIDValueObj, err := valueobjects.NewProductID(productID)
 	if err != nil {
 		return err
 	}
+
+	tenantIDValueObj, err := valueobjects.NewTenantID(tenantID)
+	if err != nil {
+		return err
+	}
+
 	for _, data := range infrastructureBlueprintMap {
 		if !data.IsCreateNew {
+			err = infrastructureRepository.IncrementUser(ctx, data.InfrastructureEntity.ID)
+			if err != nil {
+				return err
+			}
+
+			err = tenantsInfrastructureRepository.Create(
+				ctx,
+				&entities.TenantsInfrastructures{
+					TenantID:         tenantIDValueObj,
+					InfrastructureID: data.InfrastructureEntity.ID,
+				},
+			)
+			if err != nil {
+				return err
+			}
+
 			continue
 		}
 
-		variablesMap := make(map[string][]map[string]string)
-		variablesMap["variables"] = data.Metadata
-		metadataJSONB, err := json.Marshal(variablesMap)
+		var metadata infraMetadata
+
+		metadata.Variables = data.Metadata
+		metadataJSONB, err := json.Marshal(metadata)
 		if err != nil {
 			return err
 		}
@@ -243,11 +314,26 @@ func insertInfrastructures(
 			Name:            data.InfraStructureType,
 			DeploymentModel: data.DeploymentModel,
 			UserCount:       1,
-			UserLimit:       100,
+			UserLimit:       3,
 			Metadata:        string(metadataJSONB),
 		}
 
-		infrastructureRepository.Create(context.TODO(), &infrastructure)
+		err = infrastructureRepository.Create(ctx, &infrastructure)
+		if err != nil {
+			return err
+		}
+
+		err = tenantsInfrastructureRepository.Create(
+			ctx,
+			&entities.TenantsInfrastructures{
+				TenantID:         tenantIDValueObj,
+				InfrastructureID: infrastructure.ID,
+			},
+		)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
