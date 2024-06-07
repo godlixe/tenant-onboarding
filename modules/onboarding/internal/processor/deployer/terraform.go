@@ -23,8 +23,10 @@ type infraMetadata struct {
 }
 
 func parseInfrastructures(
+	ctx context.Context,
 	infrastructureDefinition []InfrastructureDefinition,
 	availableInfrastructures []entities.Infrastructure,
+	infrastructureRepository repositories.InfrastructureRepository,
 ) (map[string]InfrastructureBlueprint, error) {
 	infrastructureBlueprintMap := make(map[string]InfrastructureBlueprint)
 	for _, data := range infrastructureDefinition {
@@ -57,7 +59,16 @@ func parseInfrastructures(
 				}
 			}
 
-			val.SetIsCreateNew(false)
+			err = val.SetIsCreateNew(false)
+			if err != nil {
+				return nil, err
+			}
+
+			err = infrastructureRepository.IncrementUser(ctx, availInfra.ID)
+			if err != nil {
+				return nil, err
+			}
+
 			val.Variables = infraVariables
 			val.InfrastructureEntity = &availableInfrastructures[availInfraKey]
 			infrastructureBlueprintMap[availInfra.Name] = val
@@ -230,8 +241,10 @@ func Deploy(
 	}
 
 	infrastructureBlueprintMap, err := parseInfrastructures(
+		ctx,
 		deploymentSchema.InfrastructureDefinition,
 		availableInfrastructures,
+		infrastructureRepository,
 	)
 	if err != nil {
 		return err
@@ -281,11 +294,6 @@ func insertInfrastructures(
 
 	for _, data := range infrastructureBlueprintMap {
 		if !data.IsCreateNew {
-			err = infrastructureRepository.IncrementUser(ctx, data.InfrastructureEntity.ID)
-			if err != nil {
-				return err
-			}
-
 			err = tenantsInfrastructureRepository.Create(
 				ctx,
 				&entities.TenantsInfrastructures{

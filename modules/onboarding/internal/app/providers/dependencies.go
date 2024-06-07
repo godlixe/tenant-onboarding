@@ -2,8 +2,10 @@ package providers
 
 import (
 	"context"
+	"net/http"
 	"tenant-onboarding/modules/onboarding/internal/app/commands"
 	"tenant-onboarding/modules/onboarding/internal/domain/repositories"
+	tenantmanagement "tenant-onboarding/modules/onboarding/internal/infrastructures/api/tenant_management"
 	"tenant-onboarding/modules/onboarding/internal/infrastructures/database/postgresql"
 	"tenant-onboarding/modules/onboarding/internal/infrastructures/queue/pubsub"
 	"tenant-onboarding/modules/onboarding/internal/presentation/controllers"
@@ -23,12 +25,14 @@ func RegisterDependencies(app *providers.App) {
 	tenantRepository := postgresql.NewTenantRepository(app.DB)
 	productRepository := postgresql.NewProductRepository(app.DB)
 	tenantDeploymentRepository := pubsub.NewTenantDeploymentRepository(app.Queue)
+	tenantManagementRepository := tenantmanagement.NewTenantManagementRepository(http.DefaultClient)
 
 	userCreateTenantCmd := commands.NewUserCreateTenantCommand(
 		infrastructureRepository,
 		tenantRepository,
 		productRepository,
 		tenantDeploymentRepository,
+		tenantManagementRepository,
 	)
 
 	productController := controllers.NewProductController(productQuery)

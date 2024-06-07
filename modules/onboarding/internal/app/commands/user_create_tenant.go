@@ -5,6 +5,7 @@ import (
 	"tenant-onboarding/modules/onboarding/internal/domain/entities"
 	"tenant-onboarding/modules/onboarding/internal/domain/repositories"
 	"tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
+	"tenant-onboarding/pkg/framework"
 )
 
 type UserCreateTenantRequest struct {
@@ -30,6 +31,7 @@ type UserCreateTenantCommand struct {
 	tenantRepository           repositories.TenantRepository
 	productRepository          repositories.ProductRepository
 	tenantDeploymentRepository repositories.TenantDeploymentRepository
+	tenantManagementRepository repositories.TenantManagementRepository
 }
 
 func NewUserCreateTenantCommand(
@@ -37,12 +39,14 @@ func NewUserCreateTenantCommand(
 	tenantRepository repositories.TenantRepository,
 	productRepository repositories.ProductRepository,
 	tenantDeploymentRepository repositories.TenantDeploymentRepository,
+	tenantManagementRepository repositories.TenantManagementRepository,
 ) *UserCreateTenantCommand {
 	return &UserCreateTenantCommand{
 		infrastructureRepository:   infrastructureRepository,
 		tenantRepository:           tenantRepository,
 		productRepository:          productRepository,
 		tenantDeploymentRepository: tenantDeploymentRepository,
+		tenantManagementRepository: tenantManagementRepository,
 	}
 }
 
@@ -62,12 +66,21 @@ func (c *UserCreateTenantCommand) Execute(ctx context.Context, r UserCreateTenan
 		productID,
 		organizationID,
 		r.name,
-		valueobjects.TenantOnboarding,
+		valueobjects.TenantCreated,
 	)
 
-	err = c.tenantRepository.Create(ctx, tenant)
-	if err != nil {
-		return err
+	// If app isusing integrated mode, call tenant management
+	// API to store tenant data
+	if framework.CheckIntegratedMode() {
+		tenant, err = c.tenantManagementRepository.CreateTenant(ctx, tenant)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = c.tenantRepository.Create(ctx, tenant)
+		if err != nil {
+			return err
+		}
 	}
 
 	product, err := c.productRepository.GetByID(ctx, productID)
