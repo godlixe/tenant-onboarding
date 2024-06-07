@@ -51,5 +51,9 @@ func RegisterDependencies(app *providers.App) {
 		return tenantInfrastructureRepository, nil
 	})
 
+	do.Provide(app.Injector, func(injector *do.Injector) (repositories.ProductRepository, error) {
+		return productRepository, nil
+	})
+
 	processor.Run(context.TODO(), app)
 }

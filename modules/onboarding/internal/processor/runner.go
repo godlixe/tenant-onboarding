@@ -47,12 +47,18 @@ func workerFunc(app *providers.App, msg []byte) error {
 		return err
 	}
 
+	productRepository, err := do.Invoke[repositories.ProductRepository](app.Injector)
+	if err != nil {
+		return err
+	}
+
 	err = deployer.Deploy(
 		context.Background(),
 		terraformConfig,
 		&tenantJob,
 		infrastructureRepository,
 		tenantsInfrastructuresRepository,
+		productRepository,
 	)
 	if err != nil {
 		return err

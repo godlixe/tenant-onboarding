@@ -15,6 +15,7 @@ import (
 	"tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -78,7 +79,7 @@ func parseInfrastructures(
 	return infrastructureBlueprintMap, nil
 }
 
-func createTenantExecutionDir(tenantID string) (string, error) {
+func createInfrastructureDir(tenantID string) (string, error) {
 	// executionPath is the path used by the pipeline to deploy
 	var executionPath string = "/tmp"
 
@@ -116,13 +117,13 @@ func copyDeploymentRepository(schema DeploymentSchema, tenantDirPath string) err
 func runTerraform(
 	ctx context.Context,
 	cfg Config,
-	tenantDirPath string,
-	tenantID string,
+	terraformDirPath string,
+	infrastructureID string,
 	deploymentSchema DeploymentSchema,
 	infrastructureBlueprintMap map[string]InfrastructureBlueprint,
 ) error {
 	tfEntryPoint := path.Join(
-		tenantDirPath,
+		terraformDirPath,
 		deploymentSchema.TerraformExecutionPath,
 	)
 
@@ -133,7 +134,7 @@ func runTerraform(
 	}
 
 	err = tf.Init(ctx,
-		tfexec.BackendConfig(fmt.Sprintf("prefix=%v", tenantID)),
+		tfexec.BackendConfig(fmt.Sprintf("prefix=%v", infrastructureID)),
 		tfexec.BackendConfig(fmt.Sprintf("bucket=%v", cfg.TerraformBackendBucket)),
 	)
 	if err != nil {
@@ -145,9 +146,9 @@ func runTerraform(
 	tfVariables := []tfexec.ApplyOption{
 		tfexec.Var(fmt.Sprintf("project_id=%v", cfg.GoogleProjectID)),
 		tfexec.Var(fmt.Sprintf("region=%v", cfg.GoogleDeploymentRegion)),
-		tfexec.Var(fmt.Sprintf("tenant_name=%v", tenantID)),
-		tfexec.Var(fmt.Sprintf("tenant_subdomain=%v", tenantID)),
-		tfexec.Var(fmt.Sprintf("tenant_password=%v", tenantID)),
+		tfexec.Var(fmt.Sprintf("tenant_name=%v", infrastructureID)),
+		tfexec.Var(fmt.Sprintf("tenant_subdomain=%v", infrastructureID)),
+		tfexec.Var(fmt.Sprintf("tenant_password=%v", infrastructureID)),
 	}
 
 	for key, val := range infrastructureBlueprintMap {
@@ -205,38 +206,67 @@ func runTerraform(
 	return nil
 }
 
+func initiateInfrastructure(
+	ctx context.Context,
+	cfg Config,
+	deploymentSchema DeploymentSchema,
+	infrastructureBlueprintMap map[string]InfrastructureBlueprint,
+) error {
+	var err error
+	infrastructureDirID := uuid.NewString()
+	infrastructureDirPath, err := createInfrastructureDir(infrastructureDirID)
+	if err != nil {
+		return err
+	}
+	err = copyDeploymentRepository(deploymentSchema, infrastructureDirPath)
+	if err != nil {
+		return err
+	}
+
+	err = runTerraform(
+		ctx,
+		cfg,
+		infrastructureDirPath,
+		infrastructureDirID,
+		deploymentSchema,
+		infrastructureBlueprintMap,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Deploy(
 	ctx context.Context,
 	cfg Config,
 	tenantJob *entities.TenantDeploymentJob,
 	infrastructureRepository repositories.InfrastructureRepository,
-	tenantsInfrastructureRepository repositories.TenantsInfrastructuresRepository,
+	tenantsInfrastructuresRepository repositories.TenantsInfrastructuresRepository,
+	productRepository repositories.ProductRepository,
 ) error {
 	var err error
 
-	tenantDirPath, err := createTenantExecutionDir(tenantJob.TenantData.ID)
+	productIDValueObj, err := valueobjects.NewProductID(tenantJob.ProductID)
+	if err != nil {
+		return err
+	}
+
+	availableInfrastructures, err := infrastructureRepository.GetByProductIDInfraTypeOrdered(ctx, productIDValueObj)
+	if err != nil {
+		return err
+	}
+
+	product, err := productRepository.GetByID(ctx, productIDValueObj)
 	if err != nil {
 		return err
 	}
 
 	var deploymentSchema DeploymentSchema
-	err = json.Unmarshal([]byte(tenantJob.ProductData.DeploymentSchema), &deploymentSchema)
+	err = json.Unmarshal([]byte(product.DeploymentSchema), &deploymentSchema)
 	if err != nil {
 		fmt.Println(err)
-		return err
-	}
-
-	err = copyDeploymentRepository(deploymentSchema, tenantDirPath)
-	if err != nil {
-		return err
-	}
-
-	productIDValueObj, err := valueobjects.NewProductID(tenantJob.ProductData.ID)
-	if err != nil {
-		return err
-	}
-	availableInfrastructures, err := infrastructureRepository.GetByProductIDInfraTypeOrdered(ctx, productIDValueObj)
-	if err != nil {
 		return err
 	}
 
@@ -250,26 +280,29 @@ func Deploy(
 		return err
 	}
 
-	err = runTerraform(
+	if len(availableInfrastructures) == 0 {
+		err = initiateInfrastructure(
+			ctx,
+			cfg,
+			deploymentSchema,
+			infrastructureBlueprintMap,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = insertInfrastructures(
 		ctx,
-		cfg,
-		tenantDirPath,
-		tenantJob.TenantData.ID,
-		deploymentSchema,
+		tenantJob.ProductID,
+		tenantJob.TenantID,
 		infrastructureBlueprintMap,
+		infrastructureRepository,
+		tenantsInfrastructuresRepository,
 	)
 	if err != nil {
 		return err
 	}
-
-	insertInfrastructures(
-		ctx,
-		tenantJob.ProductData.ID,
-		tenantJob.TenantData.ID,
-		infrastructureBlueprintMap,
-		infrastructureRepository,
-		tenantsInfrastructureRepository,
-	)
 
 	return nil
 }
