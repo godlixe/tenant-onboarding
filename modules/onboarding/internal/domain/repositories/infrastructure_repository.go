@@ -11,7 +11,7 @@ type InfrastructureRepository interface {
 	GetByProductIDInfraTypeOrdered(
 		ctx context.Context,
 		productID vo.ProductID,
-	) ([]entities.Infrastructure, error)
+	) (*entities.Infrastructure, error)
 
 	Create(
 		ctx context.Context,

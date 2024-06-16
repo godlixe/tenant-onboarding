@@ -2,10 +2,10 @@ package valueobjects
 
 import (
 	"database/sql/driver"
-	"tenant-onboarding/modules/onboarding/internal/errors"
+	"tenant-onboarding/modules/onboarding/internal/errorx"
 )
 
-var ErrInvalidTenantStatus = errors.ErrInvalidTenantStatus
+var ErrInvalidTenantStatus = errorx.ErrInvalidTenantStatus
 
 type TenantStatus struct {
 	Status string
@@ -34,7 +34,7 @@ func NewTenantStatus(s string) (TenantStatus, error) {
 		return TenantInactive, nil
 	}
 
-	return TenantStatus{}, errors.ErrInvalidTenantStatus
+	return TenantStatus{}, ErrInvalidTenantStatus
 }
 
 func (t *TenantStatus) Scan(value interface{}) error {

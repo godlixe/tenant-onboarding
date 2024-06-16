@@ -5,22 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"tenant-onboarding/modules/onboarding/internal/domain/entities"
-	"tenant-onboarding/modules/onboarding/internal/domain/repositories"
-	"tenant-onboarding/modules/onboarding/internal/processor/deployer"
+	"tenant-onboarding/modules/onboarding/internal/processor/pipeline"
 	"tenant-onboarding/modules/onboarding/internal/processor/queue"
+	"tenant-onboarding/pkg/deployer"
+	"tenant-onboarding/pkg/deployer/types"
 	"tenant-onboarding/pkg/events"
 	"tenant-onboarding/pkg/events/consumer"
 	"tenant-onboarding/providers"
-
-	"github.com/samber/do"
 )
 
 // workerFunc executes a job from the queue
 func workerFunc(app *providers.App, msg []byte) error {
 	var (
 		err       error
-		tenantJob entities.TenantDeploymentJob
+		tenantJob types.TenantDeploymentJob
 		// eventQueue      *queue.Pubsub   = queue.InitPubsub("tenant_deployment")
 		terraformConfig deployer.Config = deployer.Config{
 			GoogleServiceAccountAbsolutePath: os.Getenv("GOOGLE_SERVICE_ACCOUNT_ABSOLUTE_PATH"),
@@ -36,37 +34,22 @@ func workerFunc(app *providers.App, msg []byte) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println("MSG", string(msg))
-	infrastructureRepository, err := do.Invoke[repositories.InfrastructureRepository](app.Injector)
-	if err != nil {
-		return err
-	}
 
-	tenantsInfrastructuresRepository, err := do.Invoke[repositories.TenantsInfrastructuresRepository](app.Injector)
-	if err != nil {
-		return err
-	}
-
-	productRepository, err := do.Invoke[repositories.ProductRepository](app.Injector)
-	if err != nil {
-		return err
-	}
-
-	err = deployer.Deploy(
-		context.Background(),
+	terraformDeploymentPipeline := pipeline.NewTerraformDeployer(
+		app,
 		terraformConfig,
-		&tenantJob,
-		infrastructureRepository,
-		tenantsInfrastructuresRepository,
-		productRepository,
 	)
+
+	deploymentPipeline := deployer.NewDeploymentPipeline(
+		terraformDeploymentPipeline,
+	)
+
+	err = deploymentPipeline.Start(context.TODO(), tenantJob)
 	if err != nil {
 		return err
 	}
-	fmt.Println("2 DONE")
-
-	// publish messages to queue
-	// eventQueue.Publish(context.Background(), msg)
 
 	return nil
 }

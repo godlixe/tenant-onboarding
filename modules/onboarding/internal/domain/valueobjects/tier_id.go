@@ -2,10 +2,10 @@ package valueobjects
 
 import (
 	"database/sql/driver"
-	"tenant-onboarding/modules/onboarding/internal/errors"
+	"tenant-onboarding/modules/onboarding/internal/errorx"
 )
 
-var ErrInvalidTierID = errors.ErrInvalidTierID
+var ErrInvalidTierID = errorx.ErrInvalidTierID
 
 type TierID struct {
 	ID int

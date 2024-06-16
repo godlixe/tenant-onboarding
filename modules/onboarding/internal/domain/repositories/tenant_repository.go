@@ -8,5 +8,6 @@ import (
 
 type TenantRepository interface {
 	Create(ctx context.Context, tenant *entities.Tenant) error
+	Update(ctx context.Context, tenant *entities.Tenant) error
 	GetByID(ctx context.Context, id valueobjects.TenantID) (*entities.Tenant, error)
 }

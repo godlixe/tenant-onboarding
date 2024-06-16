@@ -1,4 +1,4 @@
-package errors
+package errorx
 
 import "errors"
 
@@ -15,4 +15,6 @@ var (
 	ErrInvalidDeploymentModel    = errors.New("invalid_deployment_model")
 	ErrInvalidTenantStatus       = errors.New("invalid_tenant_status")
 	ErrInvalidInfrastructureType = errors.New("invalid_infrastructure_type")
+
+	ErrInvalidRepositoryURL = errors.New("invalid_repository_url")
 )

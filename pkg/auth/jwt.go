@@ -8,8 +8,7 @@ import (
 )
 
 type Claims struct {
-	UserId   string
-	TenantId string
+	UserId string `json:"user_id"`
 	jwt.StandardClaims
 }
 

@@ -9,11 +9,11 @@ type Tier struct {
 }
 
 type Product struct {
-	ID     string `json:"id"`
-	AppID  int    `json:"app_id"`
-	App    *App   `json:"app,omitempty"`
-	TierID int    `json:"tier_id"`
-	Tier   *Tier  `json:"tier,omitempty"`
+	ID       string `json:"id"`
+	AppID    int    `json:"app_id"`
+	App      *App   `json:"app,omitempty"`
+	TierName string `json:"tier_name"`
+	Price    int    `json:"price"`
 }
 
 type ProductFilter struct {

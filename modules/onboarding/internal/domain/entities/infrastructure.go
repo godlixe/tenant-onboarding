@@ -3,13 +3,13 @@ package entities
 import (
 	vo "tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
 	"tenant-onboarding/pkg/database"
+	"tenant-onboarding/pkg/deployer/types"
 )
 
 type Infrastructure struct {
 	ID              vo.InfrastructureID
 	ProductID       vo.ProductID
-	Name            string
-	DeploymentModel vo.DeploymentModel
+	DeploymentModel types.DeploymentModel
 	UserCount       int
 	UserLimit       int
 	Metadata        string
@@ -20,7 +20,7 @@ func NewInfrastructure(
 	id vo.InfrastructureID,
 	productID vo.ProductID,
 	name string,
-	DeploymentModel vo.DeploymentModel,
+	DeploymentModel types.DeploymentModel,
 	userCount int,
 	userLimit int,
 	metadata string,
@@ -28,7 +28,6 @@ func NewInfrastructure(
 	return &Infrastructure{
 		ID:              id,
 		ProductID:       productID,
-		Name:            name,
 		DeploymentModel: DeploymentModel,
 		UserCount:       userCount,
 		UserLimit:       userLimit,

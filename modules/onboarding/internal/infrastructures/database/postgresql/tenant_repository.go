@@ -41,3 +41,14 @@ func (r *TenantRepository) GetByID(
 
 	return tenant, nil
 }
+
+func (r *TenantRepository) Update(ctx context.Context, tenant *entities.Tenant) error {
+	tx := r.db.Model(&entities.Tenant{}).
+		Where("id = ?", tenant.ID).
+		Updates(tenant)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}

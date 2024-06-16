@@ -3,12 +3,12 @@ package valueobjects
 import (
 	"database/sql/driver"
 	"strings"
-	"tenant-onboarding/modules/onboarding/internal/errors"
+	"tenant-onboarding/modules/onboarding/internal/errorx"
 
 	"github.com/google/uuid"
 )
 
-var ErrInvalidTenantId = errors.ErrInvalidTenantID
+var ErrInvalidTenantId = errorx.ErrInvalidTenantID
 
 type TenantID struct {
 	ID string

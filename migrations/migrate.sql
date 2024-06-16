@@ -42,17 +42,11 @@ CREATE TABLE IF NOT EXISTS apps (
     created_at timestamp NOT NULL,
     updated_at timestamp NOT NULL
 );
-CREATE TABLE IF NOT EXISTS tiers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    price INTEGER NOT NULL,
-    created_at timestamp NOT NULL,
-    updated_at timestamp NOT NULL
-);
 CREATE TABLE IF NOT EXISTS products (
     id VARCHAR(36) PRIMARY KEY,
     app_id INT NOT NULL,
-    tier_id INT NOT NULL,
+    tier_name INT NOT NULL,
+    price INTEGER NOT NULL,
     deployment_schema JSON NOT NULL,
     created_at timestamp NOT NULL,
     updated_at timestamp NOT NULL
@@ -87,8 +81,6 @@ ADD CONSTRAINT fk_tenants_organization_id FOREIGN KEY (organization_id) REFERENC
 -- products table
 ALTER TABLE products
 ADD CONSTRAINT fk_products_app_id FOREIGN KEY (app_id) REFERENCES apps (id);
-ALTER TABLE products
-ADD CONSTRAINT fk_products_tier_id FOREIGN KEY (tier_id) REFERENCES tiers (id);
 -- infrastructures table
 ALTER TABLE infrastructures
 ADD CONSTRAINT fk_infrastructures_product_id FOREIGN KEY (product_id) REFERENCES products (id);

@@ -9,6 +9,7 @@ import (
 type App struct {
 	ID   vo.AppID
 	Name string
+	Icon string
 
 	events []domain.Event
 	database.Timestamp

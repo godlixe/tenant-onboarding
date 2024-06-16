@@ -1,12 +1,12 @@
-package valueobjects
+package types
 
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"tenant-onboarding/modules/onboarding/internal/errors"
+	"errors"
 )
 
-var ErrInvalidDeploymentModel = errors.ErrInvalidDeploymentModel
+var ErrInvalidDeploymentModel = errors.New("invalid_deployment_model")
 
 // DeploymentModel defines a deployment model
 // of a resource. There are 2 deployment models
@@ -31,7 +31,7 @@ func NewDeploymentModel(s string) (DeploymentModel, error) {
 	case Pool.Model:
 		return Pool, nil
 	default:
-		return DeploymentModel{}, errors.ErrInvalidDeploymentModel
+		return DeploymentModel{}, ErrInvalidDeploymentModel
 	}
 }
 

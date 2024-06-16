@@ -2,12 +2,12 @@ package valueobjects
 
 import (
 	"database/sql/driver"
-	"tenant-onboarding/modules/onboarding/internal/errors"
+	"tenant-onboarding/modules/onboarding/internal/errorx"
 
 	"github.com/google/uuid"
 )
 
-var ErrInvalidInfrastructureID = errors.ErrInvalidInfrastructureID
+var ErrInvalidInfrastructureID = errorx.ErrInvalidInfrastructureID
 
 type InfrastructureID struct {
 	ID string

@@ -22,7 +22,7 @@ func NewProductQuery(
 func (q *ProductQuery) GetProducts(ctx context.Context, filter *queries.ProductFilter) ([]queries.Product, error) {
 	var products []queries.Product
 
-	tx := q.db.Model(&queries.Product{}).Preload("App").Preload("Tier")
+	tx := q.db.Model(&queries.Product{}).Preload("App")
 
 	if filter.AppID > 0 {
 		tx.Where("app_id = ?", filter.AppID)

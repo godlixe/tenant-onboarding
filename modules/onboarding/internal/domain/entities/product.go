@@ -8,7 +8,8 @@ import (
 type Product struct {
 	ID               vo.ProductID
 	AppID            int
-	TierID           int
+	TierName         string
+	Price            int
 	DeploymentSchema string
 	database.Timestamp
 }

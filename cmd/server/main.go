@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"tenant-onboarding/middlewares"
 	"tenant-onboarding/modules/auth"
 	"tenant-onboarding/modules/onboarding"
 	"tenant-onboarding/providers"
@@ -18,6 +19,7 @@ func main() {
 	}
 
 	app := providers.NewApp()
+	app.Webserver.Use(middlewares.CORSMiddleware())
 
 	// creds, err := google.FindDefaultCredentials(context.Background())
 	// if err != nil {
@@ -59,12 +61,11 @@ func main() {
 	// tenantController := controllers.NewTenantController(tenantService)
 	// authController := controllers.NewAuthController(authService)
 
-	auth.RegisterModule(app)
-	onboarding.RegisterModule(app)
-
 	// routes.AuthRoutes(server, authController)
 	// routes.TenantRoutes(server, tenantController)
 
+	auth.RegisterModule(app)
+	onboarding.RegisterModule(app)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
