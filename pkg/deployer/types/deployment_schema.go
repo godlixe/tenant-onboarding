@@ -17,5 +17,3 @@ type DeploymentSchema struct {
 	// Product identifier
 	ProductID string
 }
-
-type InfrastructureMetadata map[string]string

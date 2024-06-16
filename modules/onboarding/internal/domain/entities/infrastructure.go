@@ -10,7 +10,6 @@ type Infrastructure struct {
 	ID              vo.InfrastructureID
 	ProductID       vo.ProductID
 	DeploymentModel types.DeploymentModel
-	UserCount       int
 	UserLimit       int
 	Metadata        string
 	database.Timestamp
@@ -21,7 +20,6 @@ func NewInfrastructure(
 	productID vo.ProductID,
 	name string,
 	DeploymentModel types.DeploymentModel,
-	userCount int,
 	userLimit int,
 	metadata string,
 ) *Infrastructure {
@@ -29,7 +27,6 @@ func NewInfrastructure(
 		ID:              id,
 		ProductID:       productID,
 		DeploymentModel: DeploymentModel,
-		UserCount:       userCount,
 		UserLimit:       userLimit,
 		Metadata:        metadata,
 	}

@@ -17,9 +17,8 @@ import (
 // workerFunc executes a job from the queue
 func workerFunc(app *providers.App, msg []byte) error {
 	var (
-		err       error
-		tenantJob types.TenantDeploymentJob
-		// eventQueue      *queue.Pubsub   = queue.InitPubsub("tenant_deployment")
+		err             error
+		tenantJob       types.TenantDeploymentJob
 		terraformConfig deployer.Config = deployer.Config{
 			GoogleServiceAccountAbsolutePath: os.Getenv("GOOGLE_SERVICE_ACCOUNT_ABSOLUTE_PATH"),
 			GoogleProjectID:                  os.Getenv("GOOGLE_PROJECT_ID"),

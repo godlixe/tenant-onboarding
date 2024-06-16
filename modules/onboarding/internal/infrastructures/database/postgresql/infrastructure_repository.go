@@ -28,7 +28,10 @@ func (q *InfrastructureRepository) GetByProductIDInfraTypeOrdered(
 	var infrastructures entities.Infrastructure
 	tx := q.db.Model(&entities.Infrastructure{}).
 		Where("product_id = ?", productID.String()).
-		Where("user_count < user_limit").
+		Where(`
+		(SELECT COUNT(tenants.id) as user_count 
+		FROM tenants 
+		WHERE tenants.infrastructure_id = infrastructures.id) < infrastructures.user_limit`).
 		Where("deployment_model = ?", "pool").
 		Order("user_count ASC").
 		Limit(1).

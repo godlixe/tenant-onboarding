@@ -66,7 +66,6 @@ func (t *TerraformDeployer) GetData(
 		fmt.Println(err)
 		return nil, err
 	}
-
 	deploymentSchema.ProductID = productIDValueObj.String()
 
 	return &deploymentSchema, nil
@@ -296,7 +295,7 @@ func persistInfrastructure(
 		return err
 	}
 
-	tenantsInfrastructuresRepository, err := do.Invoke[repositories.TenantsInfrastructuresRepository](app.Injector)
+	tenantRepository, err := do.Invoke[repositories.TenantRepository](app.Injector)
 	if err != nil {
 		return err
 	}
@@ -320,13 +319,10 @@ func persistInfrastructure(
 		}
 	}
 
-	err = tenantsInfrastructuresRepository.Create(
-		ctx,
-		&entities.TenantsInfrastructures{
-			TenantID:         tenantIDValueObj,
-			InfrastructureID: infrastructureID,
-		},
-	)
+	err = tenantRepository.Update(ctx, &entities.Tenant{
+		ID:               tenantIDValueObj,
+		InfrastructureID: &infrastructureID,
+	})
 	if err != nil {
 		return err
 	}
@@ -351,10 +347,16 @@ func (t *TerraformDeployer) PostDeployment(
 		return err
 	}
 
+	deploymentDir := fmt.Sprintf("/tmp/%v", rawInfrastructure.ID)
+	err = cleanup(deploymentDir)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (t *TerraformDeployer) Cleanup(
+func cleanup(
 	infrastructureDirPath string,
 ) error {
 	err := os.RemoveAll(infrastructureDirPath)

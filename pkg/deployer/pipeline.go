@@ -6,32 +6,35 @@ import (
 	"tenant-onboarding/pkg/deployer/types"
 )
 
+// Deployer defines the basic methods needed
+// by the deployment pipeline to run.
 type Deployer interface {
+	// GetData gathers data needed to deploy infrastructure.
 	GetData(
 		ctx context.Context,
 		tenantDeploymentJob types.TenantDeploymentJob,
 	) (*types.DeploymentSchema, error)
 
+	// Initiate prepares the deployment environment and object.
 	Initiate(
 		ctx context.Context,
 		deploymentSchema *types.DeploymentSchema,
 	) (*types.RawInfrastructure, error)
 
+	// Deploy runs the deployment.
 	Deploy(
 		ctx context.Context,
 		deploymentSchema *types.DeploymentSchema,
 		rawInfrastructure *types.RawInfrastructure,
 	) (*types.RawInfrastructure, error)
 
+	// PostDeployment runs everything that is need to be run
+	// after deployment, eg: database insertion, event publishing.
 	PostDeployment(
 		ctx context.Context,
 		tenantDeploymentJob types.TenantDeploymentJob,
 		rawInfrastructure *types.RawInfrastructure,
 		deploymentSchema *types.DeploymentSchema,
-	) error
-
-	Cleanup(
-		infrastructureDirPath string,
 	) error
 }
 
@@ -47,11 +50,14 @@ func NewDeploymentPipeline(
 	}
 }
 
+// Start() initiates the deployment pipeline.
 func (d *DeploymentPipeline) Start(ctx context.Context, tenantDeploymentJob types.TenantDeploymentJob) error {
 	deploymentSchema, err := d.deployer.GetData(ctx, tenantDeploymentJob)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("pipeline")
 
 	rawInfrastructure, err := d.deployer.Initiate(ctx, deploymentSchema)
 	if err != nil {
@@ -69,12 +75,6 @@ func (d *DeploymentPipeline) Start(ctx context.Context, tenantDeploymentJob type
 		rawInfrastructure,
 		deploymentSchema,
 	)
-	if err != nil {
-		return err
-	}
-
-	deploymentDir := fmt.Sprintf("/tmp/%v", rawInfrastructure.ID)
-	err = d.deployer.Cleanup(deploymentDir)
 	if err != nil {
 		return err
 	}
