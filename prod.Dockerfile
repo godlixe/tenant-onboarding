@@ -23,7 +23,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o /tenant-onboarding-api
+RUN CGO_ENABLED=0 go build -o /tenant-onboarding-api cmd/server/main.go
 
 FROM alpine:latest
 
@@ -33,7 +33,7 @@ WORKDIR /root/
 COPY --from=terraform /usr/local/bin/terraform /usr/local/bin/
 
 # Copy the built Go application from the builder stage
-COPY --from=builder /tenant-management-api /tenant-management-api
+COPY --from=builder /tenant-onboarding-api /tenant-onboarding-api
 
 # Expose the necessary port
 EXPOSE 8085

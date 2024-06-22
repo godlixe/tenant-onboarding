@@ -15,7 +15,6 @@ func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
 	}
 
 	app := providers.NewApp()
