@@ -1,12 +1,17 @@
 FROM golang:1.22.1-alpine
 
+RUN apk update && apk add wget
+
 RUN apk --no-cache add zip
 
 RUN apk --no-cache add git
 
-RUN wget https://releases.hashicorp.com/terraform/1.8.4/terraform_1.8.4_linux_amd64.zip
-RUN unzip terraform_1.8.4_linux_amd64.zip && rm terraform_1.8.4_linux_amd64.zip
-RUN mv terraform /usr/bin/terraform
+# Download and install Terraform
+RUN wget https://releases.hashicorp.com/terraform/1.8.4/terraform_1.8.4_linux_amd64.zip \
+    && unzip terraform_1.8.4_linux_amd64.zip \
+    && rm terraform_1.8.4_linux_amd64.zip \
+    && mv terraform /usr/bin/terraform \
+    && chmod +x /usr/bin/terraform
 
 WORKDIR /usr/src/app
 
@@ -16,7 +21,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
 # WORKDIR /usr/src/app/cmd/server
 

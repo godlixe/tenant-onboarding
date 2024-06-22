@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"tenant-onboarding/modules/onboarding/internal/domain/entities"
 
 	"cloud.google.com/go/pubsub"
@@ -28,7 +29,7 @@ func (r *TenantDeploymentRepository) PublishTenantDeploymentJob(
 	ctx context.Context,
 	job *entities.TenantDeploymentJob,
 ) error {
-	topic := r.client.Topic("tenant_deployment")
+	topic := r.client.Topic(os.Getenv("DEPLOYMENT_QUEUE"))
 
 	b, err := json.Marshal(job)
 	if err != nil {

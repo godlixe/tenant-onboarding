@@ -202,8 +202,7 @@ func runTerraform(
 
 	tf.SetStdout(os.Stdout)
 	tfVariables := []tfexec.ApplyOption{
-		tfexec.Var(fmt.Sprintf("region=%v", cfg.GoogleDeploymentRegion)),
-		tfexec.Var(fmt.Sprintf("project_id=%v", cfg.GoogleProjectID)),
+		tfexec.Var(fmt.Sprintf("provider_id=%v", cfg.GoogleProjectID)),
 		tfexec.Var(fmt.Sprintf("infrastructure_id=%v", rawInfrastructure.ID)),
 	}
 

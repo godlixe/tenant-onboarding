@@ -51,10 +51,11 @@ func workerFunc(app *providers.App, msg []byte) error {
 	}
 
 	return nil
+
 }
 
 func Run(ctx context.Context, app *providers.App) {
-	deploymentQueue := queue.InitPubsub("tenant_deployment", app)
+	deploymentQueue := queue.InitPubsub(os.Getenv("DEPLOYMENT_QUEUE_SUBSCRIPTION"), app)
 
 	deploymentEventConsumer := consumer.New(
 		consumer.WithContext(ctx),

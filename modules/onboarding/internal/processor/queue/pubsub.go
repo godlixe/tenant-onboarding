@@ -23,6 +23,7 @@ func InitPubsub(topic string, app *providers.App) *Pubsub {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	fmt.Println(string(creds.JSON))
 
 	pubsubClient, err := pubsub.NewClient(
 		context.Background(),
@@ -30,6 +31,7 @@ func InitPubsub(topic string, app *providers.App) *Pubsub {
 		option.WithCredentialsJSON(creds.JSON),
 	)
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
@@ -48,7 +50,7 @@ func (q *Pubsub) Subscribe(ctx context.Context, workerFunc func(app *providers.A
 	err := sub.Receive(ctx, func(ctx context.Context, m *pubsub.Message) {
 		err := workerFunc(q.app, m.Data)
 		if err != nil {
-			fmt.Println("NACK")
+			fmt.Println("NACK", err)
 			m.Ack()
 		}
 		fmt.Println("ACK")
