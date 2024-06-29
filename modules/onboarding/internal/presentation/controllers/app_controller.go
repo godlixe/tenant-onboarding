@@ -37,7 +37,7 @@ func (c *AppController) GetAll(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "get Apps successfull",
+		Message: "get Apps successful",
 		Data:    apps,
 	})
 }

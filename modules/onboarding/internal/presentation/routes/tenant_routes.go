@@ -11,6 +11,6 @@ func TenantRoutes(router *gin.Engine, tenantController *controllers.TenantContro
 	tenantRoutes := router.Group("/tenant", middlewares.Authenticate())
 	{
 		tenantRoutes.POST("create", tenantController.CreateTenant)
-		// tenantRoutes.GET("me", middlewares.Authenticate(), authController.Me)
+		tenantRoutes.GET("", middlewares.Authenticate(), tenantController.GetTenants)
 	}
 }

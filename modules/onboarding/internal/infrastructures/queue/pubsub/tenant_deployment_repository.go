@@ -29,7 +29,7 @@ func (r *TenantDeploymentRepository) PublishTenantDeploymentJob(
 	ctx context.Context,
 	job *entities.TenantDeploymentJob,
 ) error {
-	topic := r.client.Topic(os.Getenv("DEPLOYMENT_QUEUE"))
+	topic := r.client.Topic(os.Getenv("DEPLOYMENT_TOPIC"))
 
 	b, err := json.Marshal(job)
 	if err != nil {

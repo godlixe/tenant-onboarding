@@ -38,7 +38,7 @@ func (c *ProductController) GetAll(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "get products successfull",
+		Message: "get products successful",
 		Data:    products,
 	})
 }

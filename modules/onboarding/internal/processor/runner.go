@@ -51,15 +51,15 @@ func workerFunc(app *providers.App, msg []byte) error {
 	}
 
 	return nil
-
 }
 
 func Run(ctx context.Context, app *providers.App) {
-	deploymentQueue := queue.InitPubsub(os.Getenv("DEPLOYMENT_QUEUE_SUBSCRIPTION"), app)
+	// deploymentQueue := queue.InitPubsub(os.Getenv("DEPLOYMENT_TOPIC_SUBSCRIPTION"), app)
+	billingPaidTopic := queue.InitPubsub(os.Getenv("BILLING_PAID_TOPIC_SUBSCRIPTION"), app)
 
-	deploymentEventConsumer := consumer.New(
+	billingPaidEventConsumer := consumer.New(
 		consumer.WithContext(ctx),
-		consumer.WithQueue(deploymentQueue),
+		consumer.WithQueue(billingPaidTopic),
 		consumer.WithWorkerFunc(workerFunc),
 	)
 
@@ -71,7 +71,7 @@ func Run(ctx context.Context, app *providers.App) {
 
 	eventProcessor := events.NewProcessor(
 		mockConsumer,
-		deploymentEventConsumer,
+		billingPaidEventConsumer,
 	)
 
 	eventProcessor.Start()

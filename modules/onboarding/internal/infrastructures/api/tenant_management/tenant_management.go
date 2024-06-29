@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"tenant-onboarding/modules/onboarding/internal/domain/entities"
 	"tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
 )
 
-const tenantManagementEndpoint = "https://"
+const tenantManagementEndpoint = "https://tm.34d.me/api/tenant"
 
 type TenantManagementRepository struct {
 	client *http.Client
@@ -25,21 +26,34 @@ func NewTenantManagementRepository(
 	}
 }
 
-type TenantResponseJSON struct {
-	ID             string `json:"id"`
+type TenantRequestBody struct {
 	ProductID      string `json:"product_id"`
 	OrganizationID string `json:"organization_id"`
 	Name           string `json:"name"`
-	Status         string `json:"status"`
+}
+
+type TenantResponseJSON struct {
+	ID             string `json:"tenant_id"`
+	ProductID      string `json:"product_id"`
+	OrganizationID string `json:"organization_id"`
+	Name           string `json:"name"`
+	Status         string `json:"tenant_status"`
 }
 
 type CreateTenantResponse struct {
 	Message string
-	Data    TenantResponseJSON
+	Data    map[string]any
 }
 
 func (r *TenantManagementRepository) CreateTenant(ctx context.Context, tenant *entities.Tenant) (*entities.Tenant, error) {
-	tenantJSON, err := json.Marshal(tenant)
+
+	tenantReq := TenantRequestBody{
+		ProductID:      tenant.ProductID.String(),
+		OrganizationID: tenant.OrganizationID.String(),
+		Name:           tenant.Name,
+	}
+
+	tenantJSON, err := json.Marshal(tenantReq)
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +69,7 @@ func (r *TenantManagementRepository) CreateTenant(ctx context.Context, tenant *e
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", ctx.Value("token")))
 
 	res, err := r.client.Do(req)
 	if err != nil {
@@ -75,25 +90,34 @@ func (r *TenantManagementRepository) CreateTenant(ctx context.Context, tenant *e
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("http request failed: " + tenantResponse.Message)
+		fmt.Println(tenantResponse)
+		return nil, errors.New("http request failed")
 	}
 
-	tenantIDValueObj, err := valueobjects.NewTenantID(tenantResponse.Data.ID)
+	var tenantData TenantResponseJSON = TenantResponseJSON{
+		ID:             tenantResponse.Data["tenant_id"].(string),
+		ProductID:      tenantResponse.Data["product_id"].(string),
+		OrganizationID: tenantResponse.Data["organization_id"].(string),
+		Status:         tenantResponse.Data["tenant_status"].(string),
+		Name:           tenantResponse.Data["name"].(string),
+	}
+
+	tenantIDValueObj, err := valueobjects.NewTenantID(tenantData.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	productIDValueObj, err := valueobjects.NewProductID(tenantResponse.Data.ProductID)
+	productIDValueObj, err := valueobjects.NewProductID(tenantData.ProductID)
 	if err != nil {
 		return nil, err
 	}
 
-	organizationIDValueObj, err := valueobjects.NewOrganizationID(tenantResponse.Data.OrganizationID)
+	organizationIDValueObj, err := valueobjects.NewOrganizationID(tenantData.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
 
-	tenantStatus, err := valueobjects.NewTenantStatus(tenantResponse.Data.Status)
+	tenantStatus, err := valueobjects.NewTenantStatus(tenantData.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +126,7 @@ func (r *TenantManagementRepository) CreateTenant(ctx context.Context, tenant *e
 		ID:             tenantIDValueObj,
 		ProductID:      productIDValueObj,
 		OrganizationID: organizationIDValueObj,
-		Name:           tenantResponse.Data.Name,
+		Name:           tenantData.Name,
 		Status:         tenantStatus,
 	}
 

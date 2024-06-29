@@ -6,9 +6,9 @@ import (
 )
 
 type Organization struct {
-	ID        vo.OrganizationID
-	Name      string
-	Subdomain string
+	ID         vo.OrganizationID
+	Name       string
+	Identifier string
 
 	database.Timestamp
 }
@@ -16,11 +16,11 @@ type Organization struct {
 func NewOrganization(
 	id vo.OrganizationID,
 	name string,
-	subdomain string,
+	identifier string,
 ) *Organization {
 	return &Organization{
-		ID:        id,
-		Name:      name,
-		Subdomain: subdomain,
+		ID:         id,
+		Name:       name,
+		Identifier: identifier,
 	}
 }

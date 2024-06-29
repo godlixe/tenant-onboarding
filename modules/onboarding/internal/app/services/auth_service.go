@@ -12,7 +12,7 @@ package services
 // 	}
 // }
 
-// // Login returns an access token if successfull
+// // Login returns an access token if successful
 // // and returns an error otherwise.
 // func (s *AuthService) Login(
 // 	ctx context.Context,

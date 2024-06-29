@@ -69,7 +69,7 @@ func (c *UserCreateOrganizationCommand) Execute(ctx context.Context, r UserCreat
 	usersOrganization := entities.NewUsersOrganizations(
 		userID,
 		organization.ID,
-		valueobjects.RoleAdmin,
+		valueobjects.RoleOwner,
 	)
 
 	err = c.usersOrganizationsRepository.Create(ctx, usersOrganization)

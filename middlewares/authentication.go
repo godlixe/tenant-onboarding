@@ -48,6 +48,7 @@ func Authenticate() gin.HandlerFunc {
 			jwtToken, err := jwt.ParseWithClaims(tokenHeader[1], &claims, func(token *jwt.Token) (interface{}, error) {
 				return auth.JWTKey, nil
 			})
+
 			if err != nil {
 				ctx.AbortWithStatusJSON(http.StatusUnauthorized, httpx.Response{
 					Message: "error parsing token",
@@ -62,6 +63,7 @@ func Authenticate() gin.HandlerFunc {
 				return
 			}
 
+			ctx.Set("token", jwtToken.Raw)
 			ctx.Set("user_id", claims.Subject)
 			ctx.Next()
 		}

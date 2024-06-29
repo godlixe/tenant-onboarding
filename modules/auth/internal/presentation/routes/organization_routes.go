@@ -12,5 +12,6 @@ func OrganizationRoutes(router *gin.Engine, organizationController *controllers.
 	{
 		organizationRoutes.GET("", organizationController.GetAllUserOrganization)
 		organizationRoutes.POST("", organizationController.CreateOrganizations)
+		organizationRoutes.GET("level", organizationController.GetOrganizationLevel)
 	}
 }

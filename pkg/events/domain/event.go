@@ -1,14 +1,20 @@
 package domain
 
-import (
-	"context"
-	"time"
-)
+import "context"
 
-type Event interface {
-	OccuredOn() time.Time
-	JSON() ([]byte, error)
+type EventAttributes struct {
+	EventName string `json:"event"`
 }
+
+type Event struct {
+	Data       any             `json:"data"`
+	Attributes EventAttributes `json:"attributes"`
+}
+
+// type Event interface {
+// 	OccuredOn() time.Time
+// 	JSON() ([]byte, error)
+// }
 
 type EventListener interface {
 	Name() string

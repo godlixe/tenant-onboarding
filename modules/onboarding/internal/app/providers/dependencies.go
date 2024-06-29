@@ -19,12 +19,14 @@ import (
 func RegisterDependencies(app *providers.App) {
 	productQuery := postgresql.NewProductQuery(app.DB)
 	appQuery := postgresql.NewAppQuery(app.DB)
+	tenantQuery := postgresql.NewTenantQuery(app.DB)
 
 	infrastructureRepository := postgresql.NewInfrastructureRepository(app.DB)
 	tenantInfrastructureRepository := postgresql.NewTenantsInfrastructuresRepository(app.DB)
 	tenantRepository := postgresql.NewTenantRepository(app.DB)
 	productRepository := postgresql.NewProductRepository(app.DB)
 	tenantDeploymentRepository := pubsub.NewTenantDeploymentRepository(app.Queue)
+	tenantOnboardedRepository := pubsub.NewTenantOnboardedRepository(app.Queue)
 	tenantManagementRepository := tenantmanagement.NewTenantManagementRepository(http.DefaultClient)
 
 	userCreateTenantCmd := commands.NewUserCreateTenantCommand(
@@ -37,7 +39,7 @@ func RegisterDependencies(app *providers.App) {
 
 	productController := controllers.NewProductController(productQuery)
 	appController := controllers.NewAppController(appQuery)
-	tenantController := controllers.NewTenantController(userCreateTenantCmd)
+	tenantController := controllers.NewTenantController(userCreateTenantCmd, tenantQuery)
 
 	routes.ProductRoutes(app.Webserver, productController)
 	routes.AppRoutes(app.Webserver, appController)
@@ -45,6 +47,10 @@ func RegisterDependencies(app *providers.App) {
 
 	do.Provide(app.Injector, func(injector *do.Injector) (repositories.InfrastructureRepository, error) {
 		return infrastructureRepository, nil
+	})
+
+	do.Provide(app.Injector, func(injector *do.Injector) (repositories.TenantOnboardedRepository, error) {
+		return tenantOnboardedRepository, nil
 	})
 
 	do.Provide(app.Injector, func(injector *do.Injector) (repositories.TenantsInfrastructuresRepository, error) {

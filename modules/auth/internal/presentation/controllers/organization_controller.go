@@ -36,8 +36,29 @@ func (c *OrganizationController) GetAllUserOrganization(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "get organizations successfull",
+		Message: "get organizations successful",
 		Data:    orgs,
+	})
+}
+
+func (c *OrganizationController) GetOrganizationLevel(ctx *gin.Context) {
+	userID := ctx.Value("user_id").(string)
+	organizationID := ctx.Query("organization_id")
+
+	level, err := c.OrganizationQuery.GetOrganizationLevel(ctx, organizationID, userID)
+	if err != nil {
+		err = httpx.NewError("error getting organization level", err, http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpx.Response{
+		Message: "get organization level successful",
+		Data: struct {
+			Level string `json:"level"`
+		}{
+			Level: level,
+		},
 	})
 }
 
@@ -67,7 +88,7 @@ func (c *OrganizationController) CreateOrganizations(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "create organization successfull",
+		Message: "create organization successful",
 		Data:    nil,
 	})
 }

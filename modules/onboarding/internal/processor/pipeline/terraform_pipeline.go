@@ -25,8 +25,9 @@ import (
 )
 
 type TerraformDeployer struct {
-	app *providers.App
-	cfg deployer.Config
+	app       *providers.App
+	cfg       deployer.Config
+	dataStore map[string]any
 }
 
 func NewTerraformDeployer(
@@ -34,8 +35,9 @@ func NewTerraformDeployer(
 	cfg deployer.Config,
 ) *TerraformDeployer {
 	return &TerraformDeployer{
-		app: app,
-		cfg: cfg,
+		app:       app,
+		cfg:       cfg,
+		dataStore: make(map[string]any),
 	}
 }
 
@@ -59,6 +61,27 @@ func (t *TerraformDeployer) GetData(
 	if err != nil {
 		return nil, err
 	}
+
+	tenantRepository, err := do.Invoke[repositories.TenantRepository](t.app.Injector)
+	if err != nil {
+		return nil, err
+	}
+
+	tenantIDValueObj, err := valueobjects.NewTenantID(tenantDeploymentJob.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, err := tenantRepository.GetByID(ctx, tenantIDValueObj)
+	if err != nil {
+		return nil, err
+	}
+
+	// save data to data store
+	t.dataStore["organization_id"] = tenant.OrganizationID.String()
+	t.dataStore["tenant_id"] = tenant.ID.String()
+	t.dataStore["product_id"] = productIDValueObj.String()
+	t.dataStore["app_id"] = product.AppID
 
 	var deploymentSchema types.DeploymentSchema
 	err = json.Unmarshal([]byte(product.DeploymentSchema), &deploymentSchema)
@@ -341,6 +364,29 @@ func (t *TerraformDeployer) PostDeployment(
 		tenantDeploymentJob,
 		deploymentSchema,
 		rawInfrastructure,
+	)
+	if err != nil {
+		return err
+	}
+
+	// send tenant onboarded event
+	tenantOnboardedRepository, err := do.Invoke[repositories.TenantOnboardedRepository](t.app.Injector)
+	if err != nil {
+		return err
+	}
+
+	tenantOnboardedEvent := types.TenantOnboardedEvent{
+		TenantID:  t.dataStore["tenant_id"].(string),
+		OrgID:     t.dataStore["organization_id"].(string),
+		AppID:     t.dataStore["app_id"].(int),
+		ProductID: deploymentSchema.ProductID,
+		Metadata:  rawInfrastructure.Metadata,
+		Timestamp: time.Now(),
+	}
+
+	err = tenantOnboardedRepository.PublishTenantOnboarded(
+		ctx,
+		&tenantOnboardedEvent,
 	)
 	if err != nil {
 		return err

@@ -54,7 +54,7 @@ func (c *AuthController) Register(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "register successfull",
+		Message: "register successful",
 		Data:    nil,
 	})
 }
@@ -82,7 +82,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "login successfull",
+		Message: "login successful",
 		Data:    token,
 	})
 }
@@ -97,7 +97,7 @@ func (c *AuthController) Me(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
-		Message: "login successfull",
+		Message: "login successful",
 		Data:    user,
 	})
 }

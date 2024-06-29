@@ -15,16 +15,17 @@ type OrganizationRole struct {
 }
 
 var (
-	RoleAdmin = OrganizationRole{"admin"}
-	RoleUser  = OrganizationRole{"user"}
+	RoleMember  = OrganizationRole{"member"}
+	RoleManager = OrganizationRole{"manager"}
+	RoleOwner   = OrganizationRole{"owner"}
 )
 
 func NewOrganizationRole(role string) (OrganizationRole, error) {
 	switch role {
-	case RoleAdmin.Role:
-		return RoleAdmin, nil
-	case RoleUser.Role:
-		return RoleUser, nil
+	case RoleMember.Role:
+		return RoleMember, nil
+	case RoleOwner.Role:
+		return RoleOwner, nil
 	}
 
 	return OrganizationRole{}, ErrInvalidOrganizationRole
