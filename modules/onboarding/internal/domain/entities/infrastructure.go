@@ -7,11 +7,12 @@ import (
 )
 
 type Infrastructure struct {
-	ID              vo.InfrastructureID
-	ProductID       vo.ProductID
-	DeploymentModel types.DeploymentModel
-	UserLimit       int
-	Metadata        string
+	ID              vo.InfrastructureID   `gorm:"column:id"`
+	ProductID       vo.ProductID          `gorm:"column:product_id"`
+	DeploymentModel types.DeploymentModel `gorm:"column:deployment_model"`
+	UserLimit       int                   `gorm:"column:user_limit"`
+	Metadata        string                `gorm:"column:metadata"`
+	Prefix          string
 	database.Timestamp
 }
 

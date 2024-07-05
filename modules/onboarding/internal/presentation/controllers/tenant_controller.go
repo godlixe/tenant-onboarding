@@ -40,7 +40,7 @@ func (c *TenantController) CreateTenant(ctx *gin.Context) {
 		params.OrganizationID,
 		params.Name,
 	)
-	err = c.userCreateTenant.Execute(
+	tenant, err := c.userCreateTenant.Execute(
 		ctx,
 		req,
 	)
@@ -49,10 +49,23 @@ func (c *TenantController) CreateTenant(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
+	type TenantResponse struct {
+		ID             string `json:"id"`
+		OrganizationID string `json:"organization_id"`
+		ProductID      string `json:"product_id"`
+		Status         string `json:"status"`
+		Name           string `json:"name"`
+	}
 
 	ctx.JSON(http.StatusOK, httpx.Response{
 		Message: "tenant successfuly created",
-		Data:    nil,
+		Data: TenantResponse{
+			ID:             tenant.ID.String(),
+			OrganizationID: tenant.OrganizationID.String(),
+			ProductID:      tenant.ProductID.String(),
+			Status:         tenant.Status.String(),
+			Name:           tenant.Name,
+		},
 	})
 }
 

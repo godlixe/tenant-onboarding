@@ -7,3 +7,11 @@ and on default uses PostgreSQL for the database, Terraform for infrastructure de
 Onboarding is the process of introducing a new tenant into the environment of an SaaS application.
 
 As the framework is still in development, this README page will always be updated.
+
+This project requires docker compose. 
+
+To run the project, use the command:
+
+```bash
+docker compose up -d
+```

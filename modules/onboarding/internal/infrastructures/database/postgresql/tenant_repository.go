@@ -34,7 +34,10 @@ func (r *TenantRepository) GetByID(
 	tenantID valueobjects.TenantID,
 ) (*entities.Tenant, error) {
 	var tenant *entities.Tenant
-	tx := r.db.Model(&entities.Tenant{}).Limit(1).Find(&tenant)
+	tx := r.db.Model(&entities.Tenant{}).
+		Where("id = ?", tenantID.String()).
+		Limit(1).
+		Find(&tenant)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}

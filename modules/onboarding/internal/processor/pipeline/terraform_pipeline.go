@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/url"
@@ -47,7 +48,22 @@ func (t *TerraformDeployer) GetData(
 ) (*types.DeploymentSchema, error) {
 	var err error
 
-	productIDValueObj, err := valueobjects.NewProductID(tenantDeploymentJob.ProductID)
+	tenantIDValueObj, err := valueobjects.NewTenantID(tenantDeploymentJob.TenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	tenantRepository, err := do.Invoke[repositories.TenantRepository](t.app.Injector)
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, err := tenantRepository.GetByID(ctx, tenantIDValueObj)
+	if err != nil {
+		return nil, err
+	}
+
+	productIDValueObj, err := valueobjects.NewProductID(tenant.ProductID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -61,20 +77,9 @@ func (t *TerraformDeployer) GetData(
 	if err != nil {
 		return nil, err
 	}
-
-	tenantRepository, err := do.Invoke[repositories.TenantRepository](t.app.Injector)
-	if err != nil {
-		return nil, err
-	}
-
-	tenantIDValueObj, err := valueobjects.NewTenantID(tenantDeploymentJob.TenantID)
-	if err != nil {
-		return nil, err
-	}
-
-	tenant, err := tenantRepository.GetByID(ctx, tenantIDValueObj)
-	if err != nil {
-		return nil, err
+	if tenant.Status != valueobjects.TenantCreated {
+		fmt.Println("tenant is onboarded already", tenant.Status)
+		return nil, errors.New("tenant is already onboarded")
 	}
 
 	// save data to data store
@@ -102,7 +107,6 @@ func (t *TerraformDeployer) Initiate(
 	if err != nil {
 		return nil, err
 	}
-
 	productIDValueObj, err := valueobjects.NewProductID(deploymentSchema.ProductID)
 	if err != nil {
 		return nil, err
@@ -114,11 +118,12 @@ func (t *TerraformDeployer) Initiate(
 		if err != nil {
 			return nil, err
 		}
-
 		if (*availableInfrastructure != entities.Infrastructure{}) {
 			return &types.RawInfrastructure{
-				ID:          availableInfrastructure.ID.String(),
-				Metadata:    availableInfrastructure.Metadata,
+				ID: availableInfrastructure.ID.String(),
+				Metadata: &types.InfraOutput{
+					Metadata: availableInfrastructure.Metadata,
+				},
 				IsCreateNew: false,
 			}, nil
 		}
@@ -189,10 +194,10 @@ func runTerraform(
 	cfg deployer.Config,
 	deploymentSchema *types.DeploymentSchema,
 	rawInfrastructure *types.RawInfrastructure,
-) (string, error) {
+) (*types.InfraOutput, error) {
 	deploymentDirPath, err := createInfrastructureDir(rawInfrastructure.ID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	err = copyDeploymentRepository(
@@ -200,7 +205,7 @@ func runTerraform(
 		deploymentDirPath,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	tfEntryPoint := path.Join(
@@ -211,7 +216,7 @@ func runTerraform(
 	tf, err := tfexec.NewTerraform(tfEntryPoint, cfg.TerraformExecPath)
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return nil, err
 	}
 
 	err = tf.Init(ctx,
@@ -220,7 +225,7 @@ func runTerraform(
 	)
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return nil, err
 	}
 
 	tf.SetStdout(os.Stdout)
@@ -232,18 +237,18 @@ func runTerraform(
 	err = tf.Apply(ctx, tfVariables...)
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return nil, err
 	}
 
 	_, err = tf.StatePull(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var out map[string]tfexec.OutputMeta
 	out, err = tf.Output(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// poll until output is available
@@ -251,19 +256,27 @@ func runTerraform(
 		time.Sleep(1000)
 		out, err = tf.Output(ctx)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		fmt.Println("polling")
 	}
 
 	var metadata string
+	var resourceInformation string
 	for key, data := range out {
 		if key == "metadata" {
 			metadata = string(data.Value)
 		}
+
+		if key == "resource_information" {
+			resourceInformation = string(data.Value)
+		}
 	}
 
-	return metadata, nil
+	return &types.InfraOutput{
+		Metadata:             metadata,
+		ResourceInformations: resourceInformation,
+	}, nil
 }
 
 func (t *TerraformDeployer) Deploy(
@@ -297,7 +310,7 @@ func persistInfrastructure(
 	deploymentSchema *types.DeploymentSchema,
 	rawInfrastructure *types.RawInfrastructure,
 ) error {
-	productIDValueObj, err := valueobjects.NewProductID(tenantDeploymentJob.ProductID)
+	productIDValueObj, err := valueobjects.NewProductID(deploymentSchema.ProductID)
 	if err != nil {
 		return err
 	}
@@ -334,7 +347,7 @@ func persistInfrastructure(
 			ProductID:       productIDValueObj,
 			DeploymentModel: deploymentSchema.DeploymentModel,
 			UserLimit:       limit,
-			Metadata:        rawInfrastructure.Metadata,
+			Metadata:        rawInfrastructure.Metadata.Metadata,
 		})
 		if err != nil {
 			return err
@@ -373,6 +386,9 @@ func (t *TerraformDeployer) PostDeployment(
 	tenantOnboardedRepository, err := do.Invoke[repositories.TenantOnboardedRepository](t.app.Injector)
 	if err != nil {
 		return err
+	}
+	type OnboardedMetadata struct {
+		Metadata string
 	}
 
 	tenantOnboardedEvent := types.TenantOnboardedEvent{

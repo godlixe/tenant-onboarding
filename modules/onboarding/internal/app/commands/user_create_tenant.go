@@ -50,15 +50,15 @@ func NewUserCreateTenantCommand(
 	}
 }
 
-func (c *UserCreateTenantCommand) Execute(ctx context.Context, r UserCreateTenantRequest) error {
+func (c *UserCreateTenantCommand) Execute(ctx context.Context, r UserCreateTenantRequest) (*entities.Tenant, error) {
 	productID, err := valueobjects.NewProductID(r.productID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	organizationID, err := valueobjects.NewOrganizationID(r.organizationID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tenant := entities.NewTenant(
@@ -74,29 +74,24 @@ func (c *UserCreateTenantCommand) Execute(ctx context.Context, r UserCreateTenan
 	if framework.CheckIntegratedMode() {
 		tenant, err = c.tenantManagementRepository.CreateTenant(ctx, tenant)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		err = c.tenantRepository.Create(ctx, tenant)
 		if err != nil {
-			return err
+			return nil, err
+		}
+
+		tenantDeploymentJob := entities.NewTenantDeploymentJob(
+			tenant,
+		)
+
+		// Publishes data to standalone queue.
+		err = c.tenantDeploymentRepository.PublishTenantDeploymentJob(ctx, tenantDeploymentJob)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	product, err := c.productRepository.GetByID(ctx, productID)
-	if err != nil {
-		return err
-	}
-
-	tenantDeploymentJob := entities.NewTenantDeploymentJob(
-		tenant,
-		product,
-	)
-
-	err = c.tenantDeploymentRepository.PublishTenantDeploymentJob(ctx, tenantDeploymentJob)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tenant, nil
 }

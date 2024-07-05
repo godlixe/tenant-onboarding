@@ -11,6 +11,7 @@ import (
 	"tenant-onboarding/pkg/deployer/types"
 	"tenant-onboarding/pkg/events"
 	"tenant-onboarding/pkg/events/consumer"
+	"tenant-onboarding/pkg/framework"
 	"tenant-onboarding/providers"
 )
 
@@ -54,12 +55,18 @@ func workerFunc(app *providers.App, msg []byte) error {
 }
 
 func Run(ctx context.Context, app *providers.App) {
-	// deploymentQueue := queue.InitPubsub(os.Getenv("DEPLOYMENT_TOPIC_SUBSCRIPTION"), app)
-	billingPaidTopic := queue.InitPubsub(os.Getenv("BILLING_PAID_TOPIC_SUBSCRIPTION"), app)
 
-	billingPaidEventConsumer := consumer.New(
+	var deploymentTopic *queue.Pubsub
+	if framework.CheckIntegratedMode() {
+		deploymentTopic = queue.InitPubsub(os.Getenv("BILLING_PAID_TOPIC_SUBSCRIPTION"), app)
+	} else {
+		deploymentTopic = queue.InitPubsub(os.Getenv("DEPLOYMENT_TOPIC_SUBSCRIPTION"), app)
+
+	}
+
+	deploymentEventConsumer := consumer.New(
 		consumer.WithContext(ctx),
-		consumer.WithQueue(billingPaidTopic),
+		consumer.WithQueue(deploymentTopic),
 		consumer.WithWorkerFunc(workerFunc),
 	)
 
@@ -71,7 +78,7 @@ func Run(ctx context.Context, app *providers.App) {
 
 	eventProcessor := events.NewProcessor(
 		mockConsumer,
-		billingPaidEventConsumer,
+		deploymentEventConsumer,
 	)
 
 	eventProcessor.Start()

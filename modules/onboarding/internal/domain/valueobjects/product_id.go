@@ -2,6 +2,7 @@ package valueobjects
 
 import (
 	"database/sql/driver"
+	"fmt"
 	"strings"
 	"tenant-onboarding/modules/onboarding/internal/errorx"
 
@@ -38,6 +39,7 @@ func (i ProductID) Equals(other ProductID) bool {
 func (i *ProductID) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case string:
+		fmt.Println("am here 1:", v)
 		res, err := NewProductID(v)
 		if err != nil {
 			return err
@@ -45,6 +47,7 @@ func (i *ProductID) Scan(value interface{}) error {
 
 		i.ID = res.ID
 	default:
+		fmt.Println("am here 2:", v)
 		return ErrInvalidProductID
 	}
 

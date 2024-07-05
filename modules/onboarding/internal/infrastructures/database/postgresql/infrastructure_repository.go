@@ -25,22 +25,29 @@ func (q *InfrastructureRepository) GetByProductIDInfraTypeOrdered(
 	ctx context.Context,
 	productID vo.ProductID,
 ) (*entities.Infrastructure, error) {
-	var infrastructures entities.Infrastructure
-	tx := q.db.Model(&entities.Infrastructure{}).
+	var infrastructure entities.Infrastructure
+
+	tx := q.db.Debug().Model(&entities.Infrastructure{}).
 		Where("product_id = ?", productID.String()).
-		Where(`
-		(SELECT COUNT(tenants.id) as user_count 
-		FROM tenants 
-		WHERE tenants.infrastructure_id = infrastructures.id) < infrastructures.user_limit`).
 		Where("deployment_model = ?", "pool").
-		Order("user_count ASC").
+		Where(`(
+		SELECT COUNT(tenants.id) 
+		FROM tenants 
+		WHERE tenants.infrastructure_id = infrastructures.id
+	) < user_limit`).
+		Order(`(
+		SELECT COUNT(tenants.id) 
+		FROM tenants 
+		WHERE tenants.infrastructure_id = infrastructures.id
+	) ASC`).
 		Limit(1).
-		Find(&infrastructures)
+		Scan(&infrastructure)
+
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
 
-	return &infrastructures, nil
+	return &infrastructure, nil
 }
 
 func (q *InfrastructureRepository) Create(
