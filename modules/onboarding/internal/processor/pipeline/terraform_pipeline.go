@@ -387,9 +387,6 @@ func (t *TerraformDeployer) PostDeployment(
 	if err != nil {
 		return err
 	}
-	type OnboardedMetadata struct {
-		Metadata string
-	}
 
 	tenantOnboardedEvent := types.TenantOnboardedEvent{
 		TenantID:  t.dataStore["tenant_id"].(string),
