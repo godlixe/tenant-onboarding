@@ -7,12 +7,13 @@ import (
 )
 
 type Tenant struct {
-	ID               vo.TenantID
-	ProductID        vo.ProductID
-	OrganizationID   vo.OrganizationID
-	Name             string
-	Status           vo.TenantStatus
-	InfrastructureID *vo.InfrastructureID `gorm:"default:null"`
+	ID                  vo.TenantID
+	ProductID           vo.ProductID
+	OrganizationID      vo.OrganizationID
+	Name                string
+	Status              vo.TenantStatus
+	InfrastructureID    *vo.InfrastructureID `gorm:"default:null"`
+	ResourceInformation string
 
 	events []domain.Event
 	database.Timestamp

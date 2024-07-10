@@ -62,6 +62,7 @@ func (t *TerraformDeployer) GetData(
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(tenant)
 
 	productIDValueObj, err := valueobjects.NewProductID(tenant.ProductID.String())
 	if err != nil {
@@ -195,6 +196,7 @@ func runTerraform(
 	deploymentSchema *types.DeploymentSchema,
 	rawInfrastructure *types.RawInfrastructure,
 ) (*types.InfraOutput, error) {
+	fmt.Println("ran")
 	deploymentDirPath, err := createInfrastructureDir(rawInfrastructure.ID)
 	if err != nil {
 		return nil, err
@@ -355,8 +357,9 @@ func persistInfrastructure(
 	}
 
 	err = tenantRepository.Update(ctx, &entities.Tenant{
-		ID:               tenantIDValueObj,
-		InfrastructureID: &infrastructureID,
+		ID:                  tenantIDValueObj,
+		InfrastructureID:    &infrastructureID,
+		ResourceInformation: rawInfrastructure.Metadata.ResourceInformations,
 	})
 	if err != nil {
 		return err
