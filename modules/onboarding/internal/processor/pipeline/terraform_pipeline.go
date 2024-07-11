@@ -62,7 +62,6 @@ func (t *TerraformDeployer) GetData(
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(tenant)
 
 	productIDValueObj, err := valueobjects.NewProductID(tenant.ProductID.String())
 	if err != nil {
@@ -119,11 +118,16 @@ func (t *TerraformDeployer) Initiate(
 		if err != nil {
 			return nil, err
 		}
+		metadataBytes, err := json.Marshal(availableInfrastructure.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
 		if (*availableInfrastructure != entities.Infrastructure{}) {
 			return &types.RawInfrastructure{
 				ID: availableInfrastructure.ID.String(),
 				Metadata: &types.InfraOutput{
-					Metadata: availableInfrastructure.Metadata,
+					Metadata: metadataBytes,
 				},
 				IsCreateNew: false,
 			}, nil
@@ -196,7 +200,6 @@ func runTerraform(
 	deploymentSchema *types.DeploymentSchema,
 	rawInfrastructure *types.RawInfrastructure,
 ) (*types.InfraOutput, error) {
-	fmt.Println("ran")
 	deploymentDirPath, err := createInfrastructureDir(rawInfrastructure.ID)
 	if err != nil {
 		return nil, err
@@ -263,15 +266,29 @@ func runTerraform(
 		fmt.Println("polling")
 	}
 
-	var metadata string
-	var resourceInformation string
+	var metadata json.RawMessage
+	var resourceInformation json.RawMessage
 	for key, data := range out {
 		if key == "metadata" {
-			metadata = string(data.Value)
+			// metadataBuffer := new(bytes.Buffer)
+
+			// err = json.Compact(metadataBuffer, data.Value)
+			// if err != nil {
+			// 	return nil, err
+			// }
+
+			metadata = data.Value
 		}
 
 		if key == "resource_information" {
-			resourceInformation = string(data.Value)
+			// resourceInformationBuffer := new(bytes.Buffer)
+
+			// err = json.Compact(resourceInformationBuffer, data.Value)
+			// if err != nil {
+			// 	return nil, err
+			// }
+
+			resourceInformation = data.Value
 		}
 	}
 
@@ -344,12 +361,17 @@ func persistInfrastructure(
 			limit = 3
 		}
 
+		metadataBytes, err := json.Marshal(rawInfrastructure.Metadata)
+		if err != nil {
+			return err
+		}
+
 		err = infrastructureRepository.Create(ctx, &entities.Infrastructure{
 			ID:              infrastructureID,
 			ProductID:       productIDValueObj,
 			DeploymentModel: deploymentSchema.DeploymentModel,
 			UserLimit:       limit,
-			Metadata:        rawInfrastructure.Metadata.Metadata,
+			Metadata:        string(metadataBytes),
 		})
 		if err != nil {
 			return err
@@ -359,7 +381,7 @@ func persistInfrastructure(
 	err = tenantRepository.Update(ctx, &entities.Tenant{
 		ID:                  tenantIDValueObj,
 		InfrastructureID:    &infrastructureID,
-		ResourceInformation: rawInfrastructure.Metadata.ResourceInformations,
+		ResourceInformation: string(rawInfrastructure.Metadata.ResourceInformations),
 	})
 	if err != nil {
 		return err
@@ -392,12 +414,13 @@ func (t *TerraformDeployer) PostDeployment(
 	}
 
 	tenantOnboardedEvent := types.TenantOnboardedEvent{
-		TenantID:  t.dataStore["tenant_id"].(string),
-		OrgID:     t.dataStore["organization_id"].(string),
-		AppID:     t.dataStore["app_id"].(int),
-		ProductID: deploymentSchema.ProductID,
-		Metadata:  rawInfrastructure.Metadata,
-		Timestamp: time.Now(),
+		TenantID:            t.dataStore["tenant_id"].(string),
+		OrgID:               t.dataStore["organization_id"].(string),
+		AppID:               t.dataStore["app_id"].(int),
+		ProductID:           deploymentSchema.ProductID,
+		Metadata:            rawInfrastructure.Metadata.Metadata,
+		ResourceInformation: rawInfrastructure.Metadata.ResourceInformations,
+		Timestamp:           time.Now(),
 	}
 
 	err = tenantOnboardedRepository.PublishTenantOnboarded(

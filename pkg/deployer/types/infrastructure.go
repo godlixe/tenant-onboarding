@@ -1,8 +1,10 @@
 package types
 
+import "encoding/json"
+
 type InfraOutput struct {
-	Metadata             string
-	ResourceInformations string
+	Metadata             json.RawMessage `json:"metadata"`
+	ResourceInformations json.RawMessage `json:"resource_information"`
 }
 
 // RawInfrastructure is a placeholder struct

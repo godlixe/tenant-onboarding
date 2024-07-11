@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"tenant-onboarding/pkg/deployer/types"
-	"tenant-onboarding/pkg/events/domain"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -28,14 +27,7 @@ func (r *TenantOnboardedRepository) PublishTenantOnboarded(
 ) error {
 	topic := r.client.Topic(os.Getenv("TENANT_ONBOARDED_TOPIC"))
 
-	event := domain.Event{
-		Attributes: domain.EventAttributes{
-			EventName: "tenant_onboarded",
-		},
-		Data: job,
-	}
-
-	b, err := json.Marshal(event)
+	b, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
