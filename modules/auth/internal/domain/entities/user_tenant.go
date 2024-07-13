@@ -7,17 +7,17 @@ import (
 type UserTenant struct {
 	UserID   vo.UserID
 	TenantID vo.TenantID
-	Role     string
+	level    string
 }
 
 func NewUserTenant(
 	userID vo.UserID,
 	tenantID vo.TenantID,
-	role string,
+	level string,
 ) *UserTenant {
 	return &UserTenant{
 		UserID:   userID,
 		TenantID: tenantID,
-		Role:     role,
+		level:    level,
 	}
 }

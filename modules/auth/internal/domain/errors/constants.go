@@ -12,9 +12,9 @@ var (
 	ErrInvalidDeploymentModel = errors.New("invalid_deployment_model")
 	ErrInvalidTenantStatus    = errors.New("invalid_tenant_status")
 
-	ErrEmailExists        = errors.New("duplicate_user_email")
-	ErrOrgSubdomainExists = errors.New("duplicate_organization_subdomain")
+	ErrEmailExists         = errors.New("duplicate_user_email")
+	ErrOrgIdentifierExists = errors.New("duplicate_organization_identifier")
 
-	ErrUnauthenticated         = errors.New("user_unauthenticated")
-	ErrInvalidOrganizationRole = errors.New("invalid_organization_role")
+	ErrUnauthenticated          = errors.New("user_unauthenticated")
+	ErrInvalidOrganizationLevel = errors.New("invalid_organization_level")
 )

@@ -8,61 +8,61 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrInvalidOrganizationRole = errors.ErrInvalidOrganizationRole
+var ErrInvalidOrganizationLevel = errors.ErrInvalidOrganizationLevel
 
-type OrganizationRole struct {
-	Role string
+type OrganizationLevel struct {
+	Level string
 }
 
 var (
-	RoleMember  = OrganizationRole{"member"}
-	RoleManager = OrganizationRole{"manager"}
-	RoleOwner   = OrganizationRole{"owner"}
+	LevelMember  = OrganizationLevel{"member"}
+	LevelManager = OrganizationLevel{"manager"}
+	LevelOwner   = OrganizationLevel{"owner"}
 )
 
-func NewOrganizationRole(role string) (OrganizationRole, error) {
-	switch role {
-	case RoleMember.Role:
-		return RoleMember, nil
-	case RoleOwner.Role:
-		return RoleOwner, nil
+func NewOrganizationLevel(level string) (OrganizationLevel, error) {
+	switch level {
+	case LevelMember.Level:
+		return LevelMember, nil
+	case LevelOwner.Level:
+		return LevelOwner, nil
 	}
 
-	return OrganizationRole{}, ErrInvalidOrganizationRole
+	return OrganizationLevel{}, ErrInvalidOrganizationLevel
 }
 
-func GenerateOrganizationRole() OrganizationRole {
-	return OrganizationRole{uuid.NewString()}
+func GenerateOrganizationLevel() OrganizationLevel {
+	return OrganizationLevel{uuid.NewString()}
 }
 
-func (r OrganizationRole) String() string {
-	return r.Role
+func (r OrganizationLevel) String() string {
+	return r.Level
 }
 
-func (r OrganizationRole) Equals(other OrganizationRole) bool {
-	return strings.EqualFold(r.Role, other.Role)
+func (r OrganizationLevel) Equals(other OrganizationLevel) bool {
+	return strings.EqualFold(r.Level, other.Level)
 }
 
-func (r *OrganizationRole) Scan(value interface{}) error {
+func (r *OrganizationLevel) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case string:
-		res, err := NewOrganizationRole(v)
+		res, err := NewOrganizationLevel(v)
 		if err != nil {
 			return err
 		}
 
-		r.Role = res.Role
+		r.Level = res.Level
 	default:
-		return ErrInvalidOrganizationRole
+		return ErrInvalidOrganizationLevel
 	}
 
 	return nil
 }
 
-func (r *OrganizationRole) Value() (driver.Value, error) {
+func (r *OrganizationLevel) Value() (driver.Value, error) {
 	if r == nil {
 		return nil, nil
 	}
 
-	return r.Role, nil
+	return r.Level, nil
 }

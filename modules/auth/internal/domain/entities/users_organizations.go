@@ -7,17 +7,17 @@ import (
 type UsersOrganizations struct {
 	UserID         vo.UserID
 	OrganizationID vo.OrganizationID
-	Role           vo.OrganizationRole
+	Level          vo.OrganizationLevel
 }
 
 func NewUsersOrganizations(
 	userID vo.UserID,
 	organizationID vo.OrganizationID,
-	role vo.OrganizationRole,
+	level vo.OrganizationLevel,
 ) *UsersOrganizations {
 	return &UsersOrganizations{
 		UserID:         userID,
 		OrganizationID: organizationID,
-		Role:           role,
+		Level:          level,
 	}
 }

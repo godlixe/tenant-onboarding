@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"tenant-onboarding/modules/onboarding/internal/domain/entities"
 
@@ -44,6 +45,7 @@ func (r *TenantDeploymentRepository) PublishTenantDeploymentJob(
 	if err != nil {
 		return err
 	}
+	fmt.Println("done sending")
 
 	return nil
 }

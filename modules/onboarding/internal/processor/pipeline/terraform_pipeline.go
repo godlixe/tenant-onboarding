@@ -118,6 +118,7 @@ func (t *TerraformDeployer) Initiate(
 		if err != nil {
 			return nil, err
 		}
+
 		metadataBytes, err := json.Marshal(availableInfrastructure.Metadata)
 		if err != nil {
 			return nil, err

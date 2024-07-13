@@ -61,7 +61,6 @@ func Run(ctx context.Context, app *providers.App) {
 		deploymentTopic = queue.InitPubsub(os.Getenv("BILLING_PAID_TOPIC_SUBSCRIPTION"), app)
 	} else {
 		deploymentTopic = queue.InitPubsub(os.Getenv("DEPLOYMENT_TOPIC_SUBSCRIPTION"), app)
-
 	}
 
 	deploymentEventConsumer := consumer.New(

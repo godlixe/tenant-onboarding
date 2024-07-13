@@ -37,14 +37,14 @@ func (r *OrganizationRepository) GetByID(
 	return &organization, nil
 }
 
-func (r *OrganizationRepository) GetBySubdomain(
+func (r *OrganizationRepository) GetByIdentifier(
 	ctx context.Context,
-	subdomain string,
+	identifier string,
 ) (*entities.Organization, error) {
 	var organization entities.Organization
 
 	tx := r.db.Model(&entities.Organization{}).
-		Where("subdomain = ?", subdomain).
+		Where("identifier = ?", identifier).
 		Limit(1).
 		Find(&organization)
 	if tx.Error != nil {

@@ -14,9 +14,9 @@ FROM golang:1.22.1-alpine
 
 # RUN apk update && apk add wget
 
-# RUN apk --no-cache add zip
+RUN apk --no-cache add zip
 
-# RUN apk --no-cache add git
+RUN apk --no-cache add git
 
 # # Download and install Terraform
 # RUN wget https://releases.hashicorp.com/terraform/1.8.4/terraform_1.8.4_linux_amd64.zip \

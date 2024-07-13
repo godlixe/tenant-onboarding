@@ -13,7 +13,7 @@ type Tenant struct {
 	Name                string
 	Status              vo.TenantStatus
 	InfrastructureID    *vo.InfrastructureID `gorm:"default:null"`
-	ResourceInformation string
+	ResourceInformation string               `gorm:"default:null"`
 
 	events []domain.Event
 	database.Timestamp

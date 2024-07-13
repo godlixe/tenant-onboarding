@@ -1,6 +1,6 @@
 package dto
 
 type CreateOrganizationDTO struct {
-	Name      string `json:"name" binding:"required"`
-	Subdomain string `json:"subdomain" binding:"required"`
+	Name       string `json:"name" binding:"required"`
+	Identifier string `json:"identifier" binding:"required"`
 }

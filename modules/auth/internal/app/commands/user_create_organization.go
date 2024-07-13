@@ -9,20 +9,20 @@ import (
 )
 
 type UserCreateOrganizationRequest struct {
-	name      string
-	subdomain string
-	userID    string
+	name       string
+	identifier string
+	userID     string
 }
 
 func NewUserCreateOrganizationRequest(
 	name string,
-	subdomain string,
+	identifier string,
 	userID string,
 ) UserCreateOrganizationRequest {
 	return UserCreateOrganizationRequest{
-		name:      name,
-		subdomain: subdomain,
-		userID:    userID,
+		name:       name,
+		identifier: identifier,
+		userID:     userID,
 	}
 }
 
@@ -42,18 +42,18 @@ func NewUserCreateOrganizationCommand(
 }
 
 func (c *UserCreateOrganizationCommand) Execute(ctx context.Context, r UserCreateOrganizationRequest) error {
-	existingOrg, err := c.organizationRepository.GetBySubdomain(ctx, r.subdomain)
+	existingOrg, err := c.organizationRepository.GetByIdentifier(ctx, r.identifier)
 	if err != nil {
 		return err
 	}
 	if (*existingOrg != entities.Organization{}) {
-		return errors.ErrOrgSubdomainExists
+		return errors.ErrOrgIdentifierExists
 	}
 
 	organization := entities.NewOrganization(
 		valueobjects.GenerateOrganizationID(),
 		r.name,
-		r.subdomain,
+		r.identifier,
 	)
 
 	err = c.organizationRepository.Create(ctx, organization)
@@ -69,7 +69,7 @@ func (c *UserCreateOrganizationCommand) Execute(ctx context.Context, r UserCreat
 	usersOrganization := entities.NewUsersOrganizations(
 		userID,
 		organization.ID,
-		valueobjects.RoleOwner,
+		valueobjects.LevelOwner,
 	)
 
 	err = c.usersOrganizationsRepository.Create(ctx, usersOrganization)

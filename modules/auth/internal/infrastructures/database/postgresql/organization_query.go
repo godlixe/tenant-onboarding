@@ -26,6 +26,7 @@ func (q *OrganizationQuery) GetAllUserOrganization(ctx context.Context, userID s
 	tx := q.db.Model(&entities.Organization{}).
 		Joins("JOIN users_organizations ON organizations.id = users_organizations.organization_id").
 		Where("users_organizations.user_id = ?", userID).
+		Group("id").
 		Find(&organizations)
 	if tx.Error != nil {
 		return nil, tx.Error

@@ -29,6 +29,11 @@ FROM alpine:latest
 
 WORKDIR /root/
 
+
+RUN apk --no-cache add zip
+
+RUN apk --no-cache add git
+
 # Copy the Terraform binary from the first stage
 COPY --from=terraform /usr/local/bin/terraform /usr/local/bin/
 

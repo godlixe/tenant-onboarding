@@ -76,7 +76,7 @@ func (c *OrganizationController) CreateOrganizations(ctx *gin.Context) {
 
 	req := commands.NewUserCreateOrganizationRequest(
 		params.Name,
-		params.Subdomain,
+		params.Identifier,
 		userID,
 	)
 
