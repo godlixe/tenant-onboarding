@@ -37,8 +37,9 @@ RUN apk --no-cache add git
 # Copy the Terraform binary from the first stage
 COPY --from=terraform /usr/local/bin/terraform /usr/local/bin/
 
-# Copy the built Go application from the builder stage
+# Copy the built Go application and Go (for running commands) from the builder stage
 COPY --from=builder /tenant-onboarding-api /tenant-onboarding-api
+COPY --from=builder /usr/local/go /usr/local/
 
 # Expose the necessary port
 EXPOSE 8085

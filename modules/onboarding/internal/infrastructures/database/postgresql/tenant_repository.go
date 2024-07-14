@@ -45,8 +45,27 @@ func (r *TenantRepository) GetByID(
 	return tenant, nil
 }
 
-func (r *TenantRepository) Update(ctx context.Context, tenant *entities.Tenant) error {
+func (r *TenantRepository) GetByAppIDOrgID(
+	ctx context.Context,
+	appID valueobjects.AppID,
+	organizationID valueobjects.OrganizationID,
+) (*entities.Tenant, error) {
+	var tenant *entities.Tenant
 	tx := r.db.Model(&entities.Tenant{}).
+		Joins("JOIN products ON products.id = tenants.product_id").
+		Joins("JOIN apps ON apps.id = ?", appID.Int()).
+		Where("organization_id = ?", organizationID).
+		Limit(1).
+		Find(&tenant)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return tenant, nil
+}
+
+func (r *TenantRepository) Update(ctx context.Context, tenant *entities.Tenant) error {
+	tx := r.db.Debug().Model(&entities.Tenant{}).
 		Where("id = ?", tenant.ID).
 		Updates(tenant)
 	if tx.Error != nil {

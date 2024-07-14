@@ -14,7 +14,7 @@ type TenantStatus struct {
 var (
 	TenantCreated    = TenantStatus{"created"}
 	TenantOnboarding = TenantStatus{"onboarding"}
-	TenantActive     = TenantStatus{"active"}
+	TenantActive     = TenantStatus{"activated"}
 	TenantInactive   = TenantStatus{"inactive"}
 )
 

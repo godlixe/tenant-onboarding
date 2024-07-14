@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"tenant-onboarding/modules/onboarding/internal/domain/entities"
 	"tenant-onboarding/modules/onboarding/internal/domain/repositories"
 	"tenant-onboarding/modules/onboarding/internal/domain/valueobjects"
@@ -56,9 +57,33 @@ func (c *UserCreateTenantCommand) Execute(ctx context.Context, r UserCreateTenan
 		return nil, err
 	}
 
+	product, err := c.productRepository.GetByID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
 	organizationID, err := valueobjects.NewOrganizationID(r.organizationID)
 	if err != nil {
 		return nil, err
+	}
+
+	appID, err := valueobjects.NewAppID(product.AppID)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if same app exists in the organization
+	existingTenant, err := c.tenantRepository.GetByAppIDOrgID(
+		ctx,
+		appID,
+		organizationID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if existingTenant.ID.ID != "" {
+		return nil, errors.New("app_exists")
 	}
 
 	tenant := entities.NewTenant(

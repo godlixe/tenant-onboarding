@@ -17,6 +17,7 @@ import (
 	"tenant-onboarding/modules/onboarding/internal/errorx"
 	"tenant-onboarding/pkg/deployer"
 	"tenant-onboarding/pkg/deployer/types"
+	"tenant-onboarding/pkg/framework"
 	"tenant-onboarding/providers"
 	"time"
 
@@ -119,16 +120,27 @@ func (t *TerraformDeployer) Initiate(
 			return nil, err
 		}
 
-		metadataBytes, err := json.Marshal(availableInfrastructure.Metadata)
-		if err != nil {
-			return nil, err
-		}
-
 		if (*availableInfrastructure != entities.Infrastructure{}) {
+			type MetadataHolder struct {
+				Metadata            json.RawMessage `json:"metadata"`
+				ResourceInformation json.RawMessage `json:"resource_information"`
+			}
+
+			var availInfraMetadata MetadataHolder
+
+			err = json.Unmarshal(
+				[]byte(availableInfrastructure.Metadata),
+				&availInfraMetadata,
+			)
+			if err != nil {
+				return nil, err
+			}
+
 			return &types.RawInfrastructure{
 				ID: availableInfrastructure.ID.String(),
 				Metadata: &types.InfraOutput{
-					Metadata: metadataBytes,
+					Metadata:             json.RawMessage(availableInfrastructure.Metadata),
+					ResourceInformations: availInfraMetadata.ResourceInformation,
 				},
 				IsCreateNew: false,
 			}, nil
@@ -378,10 +390,22 @@ func persistInfrastructure(
 			return err
 		}
 	}
+	tenantStatusStr := "activated"
+
+	if framework.CheckIntegratedMode() {
+		tenantStatusStr = "created"
+	}
+
+	tenantStatus, err := valueobjects.NewTenantStatus(tenantStatusStr)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
 	err = tenantRepository.Update(ctx, &entities.Tenant{
 		ID:                  tenantIDValueObj,
 		InfrastructureID:    &infrastructureID,
+		Status:              tenantStatus,
 		ResourceInformation: string(rawInfrastructure.Metadata.ResourceInformations),
 	})
 	if err != nil {
@@ -408,6 +432,21 @@ func (t *TerraformDeployer) PostDeployment(
 		return err
 	}
 
+	metadataBytes, err := json.Marshal(rawInfrastructure.Metadata)
+	if err != nil {
+		return err
+	}
+
+	deploymentDir := fmt.Sprintf("/tmp/%v", rawInfrastructure.ID)
+
+	if rawInfrastructure.IsCreateNew {
+		err = runInitScript(path.Join(deploymentDir, deploymentSchema.InitScriptPath), string(metadataBytes))
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+
 	// send tenant onboarded event
 	tenantOnboardedRepository, err := do.Invoke[repositories.TenantOnboardedRepository](t.app.Injector)
 	if err != nil {
@@ -432,7 +471,6 @@ func (t *TerraformDeployer) PostDeployment(
 		return err
 	}
 
-	deploymentDir := fmt.Sprintf("/tmp/%v", rawInfrastructure.ID)
 	err = cleanup(deploymentDir)
 	if err != nil {
 		return err
@@ -450,4 +488,20 @@ func cleanup(
 	}
 
 	return err
+}
+
+func runInitScript(initScriptPath string, metadataJSONStr string) error {
+	cmd := exec.Command(initScriptPath, fmt.Sprintf(`--metadata=%v`, metadataJSONStr))
+
+	cmd.Dir = path.Dir(initScriptPath)
+
+	cmd.Stderr = os.Stdout
+	cmd.Stdout = os.Stdout
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -7,6 +7,7 @@ type Tenant struct {
 	ProductID           string   `json:"product_id"`
 	Product             *Product `json:"product,omitempty"`
 	Name                string   `json:"name"`
+	Status              string   `json:"status"`
 	ResourceInformation string   `json:"resource_information"`
 }
 
