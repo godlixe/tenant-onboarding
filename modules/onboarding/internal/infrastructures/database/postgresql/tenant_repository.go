@@ -51,10 +51,10 @@ func (r *TenantRepository) GetByAppIDOrgID(
 	organizationID valueobjects.OrganizationID,
 ) (*entities.Tenant, error) {
 	var tenant *entities.Tenant
-	tx := r.db.Model(&entities.Tenant{}).
+	tx := r.db.Debug().Model(&entities.Tenant{}).
 		Joins("JOIN products ON products.id = tenants.product_id").
-		Joins("JOIN apps ON apps.id = ?", appID.Int()).
 		Where("organization_id = ?", organizationID).
+		Where("products.app_id = ?", appID.Int()).
 		Limit(1).
 		Find(&tenant)
 	if tx.Error != nil {
